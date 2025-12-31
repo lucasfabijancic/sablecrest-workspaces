@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, Check, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TimelineUrgency, SensitivityLevel, BudgetBand } from '@/types/database';
 
@@ -31,7 +31,6 @@ export default function Onboarding() {
 
   // Step 1 - Workspace
   const [workspaceName, setWorkspaceName] = useState('');
-  const [inviteEmails, setInviteEmails] = useState('');
 
   // Step 2 - Request
   const [requestTitle, setRequestTitle] = useState('');
@@ -45,14 +44,10 @@ export default function Onboarding() {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1:
-        return workspaceName.trim().length >= 2;
-      case 2:
-        return requestTitle.trim().length >= 3 && desiredOutcome.trim().length >= 10;
-      case 3:
-        return timelineUrgency !== '' && sensitivity !== '';
-      default:
-        return false;
+      case 1: return workspaceName.trim().length >= 2;
+      case 2: return requestTitle.trim().length >= 3 && desiredOutcome.trim().length >= 10;
+      case 3: return timelineUrgency !== '' && sensitivity !== '';
+      default: return false;
     }
   };
 
@@ -61,7 +56,6 @@ export default function Onboarding() {
     
     setLoading(true);
     try {
-      // Create workspace
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({ name: workspaceName.trim() })
@@ -70,18 +64,12 @@ export default function Onboarding() {
 
       if (workspaceError) throw workspaceError;
 
-      // Create membership as admin
-      const { error: membershipError } = await supabase
-        .from('memberships')
-        .insert({
-          workspace_id: workspace.id,
-          user_id: user.id,
-          role: 'admin',
-        });
+      await supabase.from('memberships').insert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        role: 'admin',
+      });
 
-      if (membershipError) throw membershipError;
-
-      // Create draft request if title exists
       if (requestTitle.trim()) {
         await supabase.from('requests').insert({
           workspace_id: workspace.id,
@@ -96,17 +84,10 @@ export default function Onboarding() {
       }
 
       await refreshWorkspaces();
-      toast({
-        title: 'Draft saved',
-        description: 'Your workspace and request draft have been saved.',
-      });
-      navigate('/requests');
+      toast({ title: 'Draft saved', description: 'Your workspace and request draft have been saved.' });
+      navigate('/dashboard');
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save draft.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -117,7 +98,6 @@ export default function Onboarding() {
     
     setLoading(true);
     try {
-      // Create workspace
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({ name: workspaceName.trim() })
@@ -126,18 +106,12 @@ export default function Onboarding() {
 
       if (workspaceError) throw workspaceError;
 
-      // Create membership as admin
-      const { error: membershipError } = await supabase
-        .from('memberships')
-        .insert({
-          workspace_id: workspace.id,
-          user_id: user.id,
-          role: 'admin',
-        });
+      await supabase.from('memberships').insert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        role: 'admin',
+      });
 
-      if (membershipError) throw membershipError;
-
-      // Create submitted request
       const { data: request, error: requestError } = await supabase
         .from('requests')
         .insert({
@@ -155,12 +129,8 @@ export default function Onboarding() {
 
       if (requestError) throw requestError;
 
-      // Create conversation for the request
-      await supabase.from('conversations').insert({
-        request_id: request.id,
-      });
+      await supabase.from('conversations').insert({ request_id: request.id });
 
-      // Log activity
       await supabase.from('activity_events').insert({
         workspace_id: workspace.id,
         request_id: request.id,
@@ -170,17 +140,10 @@ export default function Onboarding() {
       });
 
       await refreshWorkspaces();
-      toast({
-        title: 'Request submitted',
-        description: 'Your workspace has been created and request submitted.',
-      });
-      navigate(`/requests/${request.id}`);
+      toast({ title: 'Request submitted', description: 'Your workspace has been created and request submitted.' });
+      navigate('/dashboard');
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create workspace.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -188,89 +151,63 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">S</span>
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-6 w-6 rounded-md bg-foreground flex items-center justify-center">
+              <span className="text-background font-bold text-[10px]">S</span>
             </div>
-            <h1 className="font-semibold text-foreground">Sablecrest Ops</h1>
+            <span className="text-xs font-medium text-muted-foreground">Sablecrest Ops</span>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Get started</h2>
-          <p className="text-muted-foreground">Create your workspace and submit your first request.</p>
+          <h1 className="text-lg font-semibold text-foreground">Get Started</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Create your workspace and submit your first request.</p>
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-2 mb-6">
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center">
-              <div
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md',
-                  currentStep === step.id && 'bg-primary/10',
-                  currentStep > step.id && 'text-success'
-                )}
-              >
-                <div
-                  className={cn(
-                    'h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium',
-                    currentStep === step.id && 'bg-primary text-primary-foreground',
-                    currentStep > step.id && 'bg-success text-success-foreground',
-                    currentStep < step.id && 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {currentStep > step.id ? <Check className="h-3 w-3" /> : step.id}
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded",
+                currentStep === step.id && 'bg-secondary'
+              )}>
+                <div className={cn(
+                  'h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium',
+                  currentStep === step.id && 'bg-foreground text-background',
+                  currentStep > step.id && 'bg-success text-success-foreground',
+                  currentStep < step.id && 'bg-muted text-muted-foreground'
+                )}>
+                  {currentStep > step.id ? <Check className="h-2.5 w-2.5" /> : step.id}
                 </div>
-                <span
-                  className={cn(
-                    'text-sm font-medium',
-                    currentStep === step.id && 'text-foreground',
-                    currentStep !== step.id && 'text-muted-foreground'
-                  )}
-                >
+                <span className={cn(
+                  'text-xs font-medium',
+                  currentStep === step.id ? 'text-foreground' : 'text-muted-foreground'
+                )}>
                   {step.title}
                 </span>
               </div>
-              {index < steps.length - 1 && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />
-              )}
+              {index < steps.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground mx-1" />}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Form */}
           <div className="lg:col-span-3">
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-card border border-border rounded-lg p-5">
               {currentStep === 1 && (
                 <div className="space-y-4 animate-fade-in">
                   <div>
-                    <Label htmlFor="workspaceName">Workspace name *</Label>
+                    <Label htmlFor="workspaceName" className="text-xs">Workspace name *</Label>
                     <Input
                       id="workspaceName"
                       value={workspaceName}
                       onChange={(e) => setWorkspaceName(e.target.value)}
-                      placeholder="e.g., Acme Corp Projects"
-                      className="mt-1"
+                      placeholder="e.g., Acme Corp"
+                      className="mt-1 h-8 text-xs"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This is your organization's private workspace.
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="inviteEmails">Invite team members (optional)</Label>
-                    <Input
-                      id="inviteEmails"
-                      value={inviteEmails}
-                      onChange={(e) => setInviteEmails(e.target.value)}
-                      placeholder="email@company.com, another@company.com"
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Comma-separated emails. You can add more later.
-                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Your organization's private workspace.</p>
                   </div>
                 </div>
               )}
@@ -278,35 +215,33 @@ export default function Onboarding() {
               {currentStep === 2 && (
                 <div className="space-y-4 animate-fade-in">
                   <div>
-                    <Label htmlFor="requestTitle">Request title *</Label>
+                    <Label htmlFor="requestTitle" className="text-xs">Request title *</Label>
                     <Input
                       id="requestTitle"
                       value={requestTitle}
                       onChange={(e) => setRequestTitle(e.target.value)}
                       placeholder="e.g., Enterprise CRM Implementation"
-                      className="mt-1"
+                      className="mt-1 h-8 text-xs"
                     />
                   </div>
-
                   <div>
-                    <Label htmlFor="desiredOutcome">Desired outcome *</Label>
+                    <Label htmlFor="desiredOutcome" className="text-xs">Desired outcome *</Label>
                     <Textarea
                       id="desiredOutcome"
                       value={desiredOutcome}
                       onChange={(e) => setDesiredOutcome(e.target.value)}
-                      placeholder="What do you want to achieve? Be specific about success criteria..."
-                      className="mt-1 min-h-[100px]"
+                      placeholder="What do you want to achieve?"
+                      className="mt-1 min-h-[80px] text-xs"
                     />
                   </div>
-
                   <div>
-                    <Label htmlFor="context">Additional context (optional)</Label>
+                    <Label htmlFor="context" className="text-xs">Additional context</Label>
                     <Textarea
                       id="context"
                       value={context}
                       onChange={(e) => setContext(e.target.value)}
-                      placeholder="Background information, constraints, stakeholders..."
-                      className="mt-1 min-h-[80px]"
+                      placeholder="Background, constraints..."
+                      className="mt-1 min-h-[60px] text-xs"
                     />
                   </div>
                 </div>
@@ -315,42 +250,40 @@ export default function Onboarding() {
               {currentStep === 3 && (
                 <div className="space-y-4 animate-fade-in">
                   <div>
-                    <Label>Timeline urgency *</Label>
+                    <Label className="text-xs">Timeline urgency *</Label>
                     <Select value={timelineUrgency} onValueChange={(v) => setTimelineUrgency(v as TimelineUrgency)}>
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="mt-1 h-8 text-xs">
                         <SelectValue placeholder="Select timeline..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {timelineOptions.map((opt) => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        {timelineOptions.map(opt => (
+                          <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div>
-                    <Label>Sensitivity level *</Label>
+                    <Label className="text-xs">Sensitivity level *</Label>
                     <Select value={sensitivity} onValueChange={(v) => setSensitivity(v as SensitivityLevel)}>
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="mt-1 h-8 text-xs">
                         <SelectValue placeholder="Select sensitivity..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {sensitivityOptions.map((opt) => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        {sensitivityOptions.map(opt => (
+                          <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div>
-                    <Label>Budget band (optional)</Label>
+                    <Label className="text-xs">Budget band</Label>
                     <Select value={budgetBand} onValueChange={(v) => setBudgetBand(v as BudgetBand)}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select budget range..." />
+                      <SelectTrigger className="mt-1 h-8 text-xs">
+                        <SelectValue placeholder="Select budget..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {budgetOptions.map((opt) => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        {budgetOptions.map(opt => (
+                          <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -359,44 +292,29 @@ export default function Onboarding() {
               )}
 
               {/* Navigation */}
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
                 <div>
                   {currentStep > 1 && (
-                    <Button
-                      variant="ghost"
-                      onClick={() => setCurrentStep(currentStep - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setCurrentStep(currentStep - 1)}>
+                      <ChevronLeft className="h-3 w-3 mr-1" />
                       Back
                     </Button>
                   )}
                 </div>
-
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {currentStep >= 2 && (
-                    <Button
-                      variant="outline"
-                      onClick={handleSaveDraft}
-                      disabled={loading || !workspaceName.trim()}
-                    >
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleSaveDraft} disabled={loading || !workspaceName.trim()}>
                       Save Draft
                     </Button>
                   )}
-
                   {currentStep < 3 ? (
-                    <Button
-                      onClick={() => setCurrentStep(currentStep + 1)}
-                      disabled={!canProceed()}
-                    >
+                    <Button size="sm" className="h-7 text-xs" onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}>
                       Continue
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
                   ) : (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={loading || !canProceed()}
-                    >
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={loading || !canProceed()}>
+                      {loading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                       Submit Request
                     </Button>
                   )}
@@ -407,51 +325,43 @@ export default function Onboarding() {
 
           {/* Live Preview */}
           <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-lg p-6 sticky top-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-4">Preview</h3>
-
-              <div className="space-y-4">
+            <div className="bg-card border border-border rounded-lg p-4 sticky top-6">
+              <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Preview</h3>
+              <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-muted-foreground">Workspace</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {workspaceName || 'Untitled workspace'}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground">Workspace</p>
+                  <p className="text-xs font-medium text-foreground">{workspaceName || 'Untitled'}</p>
                 </div>
-
                 {(requestTitle || currentStep >= 2) && (
                   <>
-                    <div className="border-t border-border pt-4">
-                      <p className="text-xs text-muted-foreground">Request</p>
-                      <p className="text-sm font-medium text-foreground">
-                        {requestTitle || 'Untitled request'}
-                      </p>
+                    <div className="border-t border-border pt-3">
+                      <p className="text-[10px] text-muted-foreground">Request</p>
+                      <p className="text-xs font-medium text-foreground">{requestTitle || 'Untitled'}</p>
                     </div>
-
                     {desiredOutcome && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Desired outcome</p>
-                        <p className="text-sm text-foreground line-clamp-2">{desiredOutcome}</p>
+                        <p className="text-[10px] text-muted-foreground">Outcome</p>
+                        <p className="text-xs text-foreground line-clamp-2">{desiredOutcome}</p>
                       </div>
                     )}
                   </>
                 )}
-
                 {(timelineUrgency || sensitivity || currentStep >= 3) && (
-                  <div className="border-t border-border pt-4 space-y-2">
+                  <div className="border-t border-border pt-3 space-y-1">
                     {timelineUrgency && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Timeline</span>
                         <span className="text-foreground">{timelineUrgency}</span>
                       </div>
                     )}
                     {sensitivity && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Sensitivity</span>
                         <span className="text-foreground">{sensitivity}</span>
                       </div>
                     )}
                     {budgetBand && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Budget</span>
                         <span className="text-foreground">{budgetBand}</span>
                       </div>

@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Send, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, Upload, FileText, MessageSquare, ListChecks, Activity, Eye } from 'lucide-react';
 import type { Request, ShortlistEntry, FileRecord, ActivityEvent, Profile, FileCategory } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface MessageWithSender {
   id: string;
@@ -24,15 +25,20 @@ interface MessageWithSender {
 
 const fileCategories: FileCategory[] = ['Brief', 'Security', 'SOW', 'Other'];
 
+type Tab = 'overview' | 'shortlist' | 'messages' | 'files' | 'activity';
+
 export default function RequestDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, isOpsOrAdmin } = useAuth();
   const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [request, setRequest] = useState<Request | null>(null);
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
   const [files, setFiles] = useState<FileRecord[]>([]);
-  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+  const [activities, setActivities] = useState<(ActivityEvent & { actor?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -70,19 +76,10 @@ export default function RequestDetail() {
           .order('created_at', { ascending: true });
         
         if (msgData) {
-          // Fetch sender profiles separately
           const userIds = [...new Set(msgData.map(m => m.sender_user_id))];
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', userIds);
-          
+          const { data: profiles } = await supabase.from('profiles').select('*').in('id', userIds);
           const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-          const messagesWithSenders = msgData.map(m => ({
-            ...m,
-            sender: profileMap.get(m.sender_user_id) as Profile | undefined
-          }));
-          setMessages(messagesWithSenders);
+          setMessages(msgData.map(m => ({ ...m, sender: profileMap.get(m.sender_user_id) as Profile | undefined })));
         }
       }
 
@@ -92,13 +89,9 @@ export default function RequestDetail() {
         .eq('request_id', id);
       if (shortlistData) setShortlist(shortlistData as ShortlistEntry[]);
 
-      const { data: filesData } = await supabase
-        .from('files')
-        .select('*')
-        .eq('request_id', id);
+      const { data: filesData } = await supabase.from('files').select('*').eq('request_id', id);
       if (filesData) setFiles(filesData as FileRecord[]);
 
-      // Fetch activity events
       if (reqData) {
         const { data: activityData } = await supabase
           .from('activity_events')
@@ -109,18 +102,11 @@ export default function RequestDetail() {
         if (activityData) {
           const actorIds = [...new Set(activityData.filter(a => a.actor_user_id).map(a => a.actor_user_id!))];
           if (actorIds.length > 0) {
-            const { data: actorProfiles } = await supabase
-              .from('profiles')
-              .select('*')
-              .in('id', actorIds);
+            const { data: actorProfiles } = await supabase.from('profiles').select('*').in('id', actorIds);
             const actorMap = new Map(actorProfiles?.map(p => [p.id, p]) || []);
-            const activitiesWithActors = activityData.map(a => ({
-              ...a,
-              actor: a.actor_user_id ? actorMap.get(a.actor_user_id) as Profile | undefined : undefined
-            }));
-            setActivities(activitiesWithActors);
+            setActivities(activityData.map(a => ({ ...a, actor: a.actor_user_id ? actorMap.get(a.actor_user_id) as Profile | undefined : undefined })));
           } else {
-            setActivities(activityData as ActivityEvent[]);
+            setActivities(activityData as (ActivityEvent & { actor?: Profile })[]);
           }
         }
       }
@@ -151,17 +137,9 @@ export default function RequestDetail() {
     
     if (msgData) {
       const userIds = [...new Set(msgData.map(m => m.sender_user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', userIds);
-      
+      const { data: profiles } = await supabase.from('profiles').select('*').in('id', userIds);
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      const messagesWithSenders = msgData.map(m => ({
-        ...m,
-        sender: profileMap.get(m.sender_user_id) as Profile | undefined
-      }));
-      setMessages(messagesWithSenders);
+      setMessages(msgData.map(m => ({ ...m, sender: profileMap.get(m.sender_user_id) as Profile | undefined })));
     }
     
     setSending(false);
@@ -174,15 +152,11 @@ export default function RequestDetail() {
     setUploading(true);
     try {
       const filePath = `${id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('request-files')
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('request-files').upload(filePath, file);
       
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('request-files')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('request-files').getPublicUrl(filePath);
 
       await supabase.from('files').insert({
         request_id: id,
@@ -192,11 +166,7 @@ export default function RequestDetail() {
         category: fileCategory,
       });
 
-      // Refresh files
-      const { data: filesData } = await supabase
-        .from('files')
-        .select('*')
-        .eq('request_id', id);
+      const { data: filesData } = await supabase.from('files').select('*').eq('request_id', id);
       if (filesData) setFiles(filesData as FileRecord[]);
 
       toast({ title: 'File uploaded', description: file.name });
@@ -208,80 +178,141 @@ export default function RequestDetail() {
     }
   };
 
+  const formatEventType = (type: string): string => {
+    const labels: Record<string, string> = {
+      'request_submitted': 'submitted this request',
+      'request_updated': 'updated this request',
+      'status_changed': 'changed the status',
+      'shortlist_added': 'added a provider to shortlist',
+      'file_uploaded': 'uploaded a file',
+      'message_sent': 'sent a message',
+    };
+    return labels[type] || type.replace(/_/g, ' ');
+  };
+
+  const tabs: { id: Tab; label: string; icon: typeof Eye; count?: number }[] = [
+    { id: 'overview', label: 'Overview', icon: Eye },
+    { id: 'shortlist', label: 'Shortlist', icon: ListChecks, count: shortlist.length },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages.length },
+    { id: 'files', label: 'Files', icon: FileText, count: files.length },
+    { id: 'activity', label: 'Activity', icon: Activity, count: activities.length },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!request) {
-    return <div className="p-6 text-muted-foreground">Request not found.</div>;
+    return (
+      <div className="page-content">
+        <EmptyState
+          icon={FileText}
+          title="Request not found"
+          description="This request may have been deleted or you don't have access."
+          action={{ label: 'Back to Requests', onClick: () => navigate('/requests') }}
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="p-6">
-      <Link to="/requests" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
-        <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to requests
-      </Link>
+    <div className="page-container">
+      <PageHeader
+        title={request.title}
+        actions={
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate('/requests')}>
+            <ArrowLeft className="h-3 w-3 mr-1" />
+            Back
+          </Button>
+        }
+      />
 
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{request.title}</h1>
-          <div className="flex items-center gap-3 mt-2">
-            <StatusBadge status={request.status} variant="request" />
-            {request.timeline_urgency && (
-              <StatusBadge status={request.timeline_urgency} variant="urgency" />
-            )}
-            <span className="text-sm text-muted-foreground">
-              Updated {formatDistanceToNow(new Date(request.updated_at), { addSuffix: true })}
-            </span>
-          </div>
+      {/* Status bar */}
+      <div className="flex items-center gap-2 px-6 py-2 border-b border-border">
+        <StatusBadge status={request.status} variant="request" />
+        {request.timeline_urgency && <StatusBadge status={request.timeline_urgency} variant="urgency" />}
+        <span className="text-muted-foreground text-xs">·</span>
+        <span className="text-muted-foreground text-xs">
+          Updated {formatDistanceToNow(new Date(request.updated_at), { addSuffix: true })}
+        </span>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-border px-6">
+        <div className="flex items-center gap-1">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
+                activeTab === tab.id
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-muted text-muted-foreground rounded text-[10px]">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="shortlist">Shortlist ({shortlist.length})</TabsTrigger>
-          <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
-          <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
-          <TabsTrigger value="activity">Activity ({activities.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="bg-card border border-border rounded-lg p-4 space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Desired Outcome</h3>
-              <p className="text-foreground mt-1">{request.desired_outcome || 'Not specified'}</p>
+      {/* Tab Content */}
+      <div className="page-content animate-fade-in">
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Desired Outcome</h3>
+                <p className="text-sm text-foreground">{request.desired_outcome || 'Not specified'}</p>
+              </div>
+              {request.context && (
+                <div className="bg-card border border-border rounded-lg p-4">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Context</h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{request.context}</p>
+                </div>
+              )}
             </div>
-            {request.context && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Context</h3>
-                <p className="text-foreground mt-1">{request.context}</p>
-              </div>
-            )}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Sensitivity</h3>
-                <p className="text-foreground mt-1">{request.sensitivity || 'Not set'}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Budget</h3>
-                <p className="text-foreground mt-1">{request.budget_band || 'Not set'}</p>
+            <div className="space-y-4">
+              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Timeline</span>
+                    <span className="text-foreground">{request.timeline_urgency || '—'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Sensitivity</span>
+                    <span className="text-foreground">{request.sensitivity || '—'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Budget</span>
+                    <span className="text-foreground">{request.budget_band || '—'}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="shortlist">
+        {activeTab === 'shortlist' && (
           <div className="bg-card border border-border rounded-lg">
             {shortlist.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                No providers on shortlist yet.
-              </div>
+              <EmptyState
+                icon={ListChecks}
+                title="No providers shortlisted"
+                description="Providers will appear here once they've been added to the shortlist."
+              />
             ) : (
               <table className="data-table">
                 <thead>
@@ -294,146 +325,129 @@ export default function RequestDetail() {
                 </thead>
                 <tbody>
                   {shortlist.map(entry => (
-                    <tr key={entry.id}>
+                    <tr key={entry.id} className="cursor-default">
                       <td className="font-medium">{entry.provider?.name}</td>
                       <td><StatusBadge status={entry.status} variant="shortlist" /></td>
-                      <td>{entry.est_cost_band || '-'}</td>
-                      <td className="text-muted-foreground">{entry.fit_notes || '-'}</td>
+                      <td className="text-muted-foreground">{entry.est_cost_band || '—'}</td>
+                      <td className="text-muted-foreground max-w-xs truncate">{entry.fit_notes || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="messages">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
+        {activeTab === 'messages' && (
+          <div className="bg-card border border-border rounded-lg">
+            <div className="max-h-96 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No messages yet.</p>
+                <div className="text-center text-muted-foreground text-xs py-8">No messages yet.</div>
               ) : (
                 messages.map(msg => (
-                  <div key={msg.id} className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <span className="text-xs font-medium">
-                        {(msg.sender as any)?.email?.[0]?.toUpperCase() || '?'}
-                      </span>
+                  <div key={msg.id} className="flex gap-2">
+                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 text-[10px] font-medium">
+                      {msg.sender?.email?.[0]?.toUpperCase() || '?'}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{(msg.sender as any)?.email || 'Unknown'}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs font-medium text-foreground">{msg.sender?.email?.split('@')[0] || 'Unknown'}</span>
+                        <span className="text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                         </span>
                       </div>
-                      <p className="text-sm text-foreground mt-1">{msg.body}</p>
+                      <p className="text-xs text-foreground mt-0.5">{msg.body}</p>
                     </div>
                   </div>
                 ))
               )}
             </div>
-            <div className="flex gap-2 pt-4 border-t border-border">
+            <div className="flex gap-2 p-4 border-t border-border">
               <Textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="min-h-[60px]"
+                className="min-h-[48px] text-xs resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
               />
-              <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
+              <Button size="icon" className="h-12 w-12 shrink-0" onClick={sendMessage} disabled={sending || !newMessage.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="files">
-          <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+        {activeTab === 'files' && (
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Select value={fileCategory} onValueChange={(v) => setFileCategory(v as FileCategory)}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-28 h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {fileCategories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button 
-                variant="outline" 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                Upload File
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                Upload
               </Button>
             </div>
-            {files.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No files uploaded yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {files.map(file => (
-                  <li key={file.id} className="flex items-center justify-between p-3 bg-muted rounded">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{file.filename}</span>
+            <div className="bg-card border border-border rounded-lg">
+              {files.length === 0 ? (
+                <EmptyState icon={FileText} title="No files uploaded" description="Upload files to share documents with your team." />
+              ) : (
+                <div className="divide-y divide-border">
+                  {files.map(file => (
+                    <div key={file.id} className="flex items-center justify-between px-4 py-3 hover:bg-table-hover transition-colors">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-foreground">{file.filename}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground px-2 py-0.5 bg-secondary rounded">{file.category}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground px-2 py-1 bg-background rounded">{file.category}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="activity">
-          <div className="bg-card border border-border rounded-lg p-4">
+        {activeTab === 'activity' && (
+          <div className="bg-card border border-border rounded-lg">
             {activities.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No activity recorded yet.</p>
+              <EmptyState icon={Activity} title="No activity yet" description="Actions on this request will be logged here." />
             ) : (
-              <ul className="space-y-3">
+              <div className="divide-y divide-border">
                 {activities.map(event => (
-                  <li key={event.id} className="flex items-start gap-3 p-2 border-b border-border last:border-0">
-                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-xs font-medium">
-                        {event.actor?.email?.[0]?.toUpperCase() || 'S'}
-                      </span>
+                  <div key={event.id} className="flex items-start gap-3 px-4 py-3">
+                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-medium">
+                      {event.actor?.email?.[0]?.toUpperCase() || 'S'}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm">
-                        <span className="font-medium text-foreground">{event.actor?.email || 'System'}</span>
+                      <p className="text-xs">
+                        <span className="font-medium text-foreground">{event.actor?.email?.split('@')[0] || 'System'}</span>
                         <span className="text-muted-foreground"> {formatEventType(event.event_type)}</span>
                       </p>
-                      <span className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
-                      </span>
+                      </p>
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
-}
-
-function formatEventType(type: string): string {
-  const eventLabels: Record<string, string> = {
-    'request_submitted': 'submitted this request',
-    'request_updated': 'updated this request',
-    'status_changed': 'changed the status',
-    'shortlist_added': 'added a provider to shortlist',
-    'file_uploaded': 'uploaded a file',
-    'message_sent': 'sent a message',
-  };
-  return eventLabels[type] || type.replace(/_/g, ' ');
 }
