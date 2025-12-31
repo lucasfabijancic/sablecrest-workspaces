@@ -7,11 +7,12 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import Dashboard from "./pages/Dashboard";
 import RequestsList from "./pages/RequestsList";
 import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
 import ProvidersList from "./pages/ProvidersList";
-import Admin from "./pages/Admin";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,12 +28,13 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/" element={<AppLayout />}>
-              <Route index element={<Navigate to="/requests" replace />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="requests" element={<RequestsList />} />
               <Route path="requests/new" element={<NewRequest />} />
               <Route path="requests/:id" element={<RequestDetail />} />
               <Route path="providers" element={<ProvidersList />} />
-              <Route path="admin" element={<Admin />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
