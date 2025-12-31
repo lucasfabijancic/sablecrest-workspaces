@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,21 +6,40 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Loader2, Send } from 'lucide-react';
-import type { Request, Message, ShortlistEntry, FileRecord } from '@/types/database';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Loader2, Send, Upload, FileText } from 'lucide-react';
+import type { Request, ShortlistEntry, FileRecord, ActivityEvent, Profile, FileCategory } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+interface MessageWithSender {
+  id: string;
+  conversation_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+  sender?: Profile;
+}
+
+const fileCategories: FileCategory[] = ['Brief', 'Security', 'SOW', 'Other'];
 
 export default function RequestDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isOpsOrAdmin } = useAuth();
+  const { toast } = useToast();
   const [request, setRequest] = useState<Request | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
   const [files, setFiles] = useState<FileRecord[]>([]);
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [fileCategory, setFileCategory] = useState<FileCategory>('Other');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -46,10 +65,25 @@ export default function RequestDetail() {
         setConversationId(convData.id);
         const { data: msgData } = await supabase
           .from('messages')
-          .select('*, sender:profiles(*)')
+          .select('*')
           .eq('conversation_id', convData.id)
           .order('created_at', { ascending: true });
-        if (msgData) setMessages(msgData as Message[]);
+        
+        if (msgData) {
+          // Fetch sender profiles separately
+          const userIds = [...new Set(msgData.map(m => m.sender_user_id))];
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', userIds);
+          
+          const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+          const messagesWithSenders = msgData.map(m => ({
+            ...m,
+            sender: profileMap.get(m.sender_user_id) as Profile | undefined
+          }));
+          setMessages(messagesWithSenders);
+        }
       }
 
       const { data: shortlistData } = await supabase
@@ -63,6 +97,33 @@ export default function RequestDetail() {
         .select('*')
         .eq('request_id', id);
       if (filesData) setFiles(filesData as FileRecord[]);
+
+      // Fetch activity events
+      if (reqData) {
+        const { data: activityData } = await supabase
+          .from('activity_events')
+          .select('*')
+          .eq('request_id', id)
+          .order('created_at', { ascending: false });
+        
+        if (activityData) {
+          const actorIds = [...new Set(activityData.filter(a => a.actor_user_id).map(a => a.actor_user_id!))];
+          if (actorIds.length > 0) {
+            const { data: actorProfiles } = await supabase
+              .from('profiles')
+              .select('*')
+              .in('id', actorIds);
+            const actorMap = new Map(actorProfiles?.map(p => [p.id, p]) || []);
+            const activitiesWithActors = activityData.map(a => ({
+              ...a,
+              actor: a.actor_user_id ? actorMap.get(a.actor_user_id) as Profile | undefined : undefined
+            }));
+            setActivities(activitiesWithActors);
+          } else {
+            setActivities(activityData as ActivityEvent[]);
+          }
+        }
+      }
 
       setLoading(false);
     };
@@ -84,12 +145,67 @@ export default function RequestDetail() {
     
     const { data: msgData } = await supabase
       .from('messages')
-      .select('*, sender:profiles(*)')
+      .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-    if (msgData) setMessages(msgData as Message[]);
+    
+    if (msgData) {
+      const userIds = [...new Set(msgData.map(m => m.sender_user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const messagesWithSenders = msgData.map(m => ({
+        ...m,
+        sender: profileMap.get(m.sender_user_id) as Profile | undefined
+      }));
+      setMessages(messagesWithSenders);
+    }
     
     setSending(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id || !user) return;
+    
+    setUploading(true);
+    try {
+      const filePath = `${id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('request-files')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('request-files')
+        .getPublicUrl(filePath);
+
+      await supabase.from('files').insert({
+        request_id: id,
+        uploader_user_id: user.id,
+        filename: file.name,
+        storage_url: urlData.publicUrl,
+        category: fileCategory,
+      });
+
+      // Refresh files
+      const { data: filesData } = await supabase
+        .from('files')
+        .select('*')
+        .eq('request_id', id);
+      if (filesData) setFiles(filesData as FileRecord[]);
+
+      toast({ title: 'File uploaded', description: file.name });
+    } catch (error: any) {
+      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
@@ -132,6 +248,7 @@ export default function RequestDetail() {
           <TabsTrigger value="shortlist">Shortlist ({shortlist.length})</TabsTrigger>
           <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
+          <TabsTrigger value="activity">Activity ({activities.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -231,15 +348,73 @@ export default function RequestDetail() {
         </TabsContent>
 
         <TabsContent value="files">
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <Select value={fileCategory} onValueChange={(v) => setFileCategory(v as FileCategory)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fileCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                Upload File
+              </Button>
+            </div>
             {files.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No files uploaded yet.</p>
             ) : (
               <ul className="space-y-2">
                 {files.map(file => (
-                  <li key={file.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                    <span className="text-sm">{file.filename}</span>
-                    <span className="text-xs text-muted-foreground">{file.category}</span>
+                  <li key={file.id} className="flex items-center justify-between p-3 bg-muted rounded">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{file.filename}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground px-2 py-1 bg-background rounded">{file.category}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <div className="bg-card border border-border rounded-lg p-4">
+            {activities.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No activity recorded yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {activities.map(event => (
+                  <li key={event.id} className="flex items-start gap-3 p-2 border-b border-border last:border-0">
+                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-xs font-medium">
+                        {event.actor?.email?.[0]?.toUpperCase() || 'S'}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm">
+                        <span className="font-medium text-foreground">{event.actor?.email || 'System'}</span>
+                        <span className="text-muted-foreground"> {formatEventType(event.event_type)}</span>
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -249,4 +424,16 @@ export default function RequestDetail() {
       </Tabs>
     </div>
   );
+}
+
+function formatEventType(type: string): string {
+  const eventLabels: Record<string, string> = {
+    'request_submitted': 'submitted this request',
+    'request_updated': 'updated this request',
+    'status_changed': 'changed the status',
+    'shortlist_added': 'added a provider to shortlist',
+    'file_uploaded': 'uploaded a file',
+    'message_sent': 'sent a message',
+  };
+  return eventLabels[type] || type.replace(/_/g, ' ');
 }
