@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import RequestsList from "./pages/RequestsList";
 import RequestDetail from "./pages/RequestDetail";
+import NewRequest from "./pages/NewRequest";
 import ProvidersList from "./pages/ProvidersList";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -28,7 +29,7 @@ const App = () => (
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Navigate to="/requests" replace />} />
               <Route path="requests" element={<RequestsList />} />
-              <Route path="requests/new" element={<Onboarding />} />
+              <Route path="requests/new" element={<NewRequest />} />
               <Route path="requests/:id" element={<RequestDetail />} />
               <Route path="providers" element={<ProvidersList />} />
               <Route path="admin" element={<Admin />} />

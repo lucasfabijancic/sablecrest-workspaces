@@ -31,8 +31,8 @@ export default function RequestsList() {
         .eq('workspace_id', currentWorkspace.id)
         .order('updated_at', { ascending: false });
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+      if (statusFilter !== 'all' && statusOptions.includes(statusFilter as RequestStatus)) {
+        query = query.eq('status', statusFilter as RequestStatus);
       }
 
       const { data, error } = await query;
