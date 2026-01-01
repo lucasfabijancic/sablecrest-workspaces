@@ -6,8 +6,18 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { KPICard } from '@/components/ui/KPICard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { FileText, Building2, Users, Clock, ArrowRight, Activity } from 'lucide-react';
+import { FileText, Send, Target, ListChecks, Play, ArrowRight, Activity, Search, Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { formatDistanceToNow } from 'date-fns';
 import type { Request, ActivityEvent, Profile } from '@/types/database';
 
@@ -15,18 +25,26 @@ interface ActivityWithActor extends ActivityEvent {
   actor?: Profile;
 }
 
+type StatusFilter = 'all' | Request['status'];
+type UrgencyFilter = 'all' | NonNullable<Request['timeline_urgency']>;
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { currentWorkspace, isOpsOrAdmin } = useAuth();
+  const { currentWorkspace } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [activities, setActivities] = useState<ActivityWithActor[]>([]);
-  const [stats, setStats] = useState({
-    totalRequests: 0,
-    activeRequests: 0,
-    providers: 0,
-    members: 0,
+  const [statusCounts, setStatusCounts] = useState({
+    submitted: 0,
+    scoping: 0,
+    shortlisting: 0,
+    inExecution: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>('all');
+  const [scopingDialogOpen, setScopingDialogOpen] = useState(false);
+  const [calendlyUrl, setCalendlyUrl] = useState('');
 
   useEffect(() => {
     if (!currentWorkspace) return;
@@ -34,22 +52,24 @@ export default function Dashboard() {
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch requests
+      // Fetch all requests for counts and display
       const { data: reqData } = await supabase
         .from('requests')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .order('updated_at', { ascending: false })
-        .limit(5);
+        .order('updated_at', { ascending: false });
 
       if (reqData) {
         setRequests(reqData as Request[]);
-        const active = reqData.filter(r => !['Draft', 'Closed', 'Delivered'].includes(r.status));
-        setStats(prev => ({
-          ...prev,
-          totalRequests: reqData.length,
-          activeRequests: active.length,
-        }));
+        
+        // Calculate status counts
+        const counts = {
+          submitted: reqData.filter(r => r.status === 'Submitted').length,
+          scoping: reqData.filter(r => r.status === 'Scoping').length,
+          shortlisting: reqData.filter(r => r.status === 'Shortlisting').length,
+          inExecution: reqData.filter(r => r.status === 'In Execution').length,
+        };
+        setStatusCounts(counts);
       }
 
       // Fetch activity
@@ -78,22 +98,6 @@ export default function Dashboard() {
         }
       }
 
-      // Fetch counts
-      const { count: memberCount } = await supabase
-        .from('memberships')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', currentWorkspace.id);
-
-      const { count: providerCount } = await supabase
-        .from('providers')
-        .select('*', { count: 'exact', head: true });
-
-      setStats(prev => ({
-        ...prev,
-        members: memberCount || 0,
-        providers: providerCount || 0,
-      }));
-
       setLoading(false);
     };
 
@@ -112,6 +116,26 @@ export default function Dashboard() {
     return labels[type] || type.replace(/_/g, ' ');
   };
 
+  const getNextAction = (status: Request['status']): string => {
+    if (status === 'Submitted' || status === 'Scoping') {
+      return 'Schedule call';
+    }
+    return 'Review';
+  };
+
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = request.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesUrgency = urgencyFilter === 'all' || request.timeline_urgency === urgencyFilter;
+    return matchesSearch && matchesStatus && matchesUrgency;
+  });
+
+  const handleOpenCalendly = () => {
+    if (calendlyUrl) {
+      window.open(calendlyUrl, '_blank');
+    }
+  };
+
   if (!currentWorkspace) {
     return (
       <div className="p-6 text-center text-muted-foreground text-sm">
@@ -125,39 +149,60 @@ export default function Dashboard() {
       <PageHeader 
         title="Dashboard" 
         description={`Overview for ${currentWorkspace.name}`}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setScopingDialogOpen(true)}
+            >
+              <Calendar className="h-3 w-3 mr-1.5" />
+              Schedule Scoping Call
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => navigate('/requests/new')}
+            >
+              <FileText className="h-3 w-3 mr-1.5" />
+              New Request
+            </Button>
+          </>
+        }
       />
 
       <div className="page-content space-y-6">
-        {/* KPI Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI Grid - Funnel stages */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KPICard
-            label="Total Requests"
-            value={stats.totalRequests}
-            icon={FileText}
+            label="Submitted"
+            value={statusCounts.submitted}
+            icon={Send}
           />
           <KPICard
-            label="Active"
-            value={stats.activeRequests}
-            icon={Clock}
+            label="Scoping"
+            value={statusCounts.scoping}
+            icon={Target}
           />
           <KPICard
-            label="Providers"
-            value={stats.providers}
-            icon={Building2}
+            label="Shortlisting"
+            value={statusCounts.shortlisting}
+            icon={ListChecks}
           />
           <KPICard
-            label="Team Members"
-            value={stats.members}
-            icon={Users}
+            label="In Execution"
+            value={statusCounts.inExecution}
+            icon={Play}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Requests */}
+          {/* My Queue */}
           <div className="lg:col-span-2">
             <div className="bg-card border border-border rounded-lg">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-medium text-foreground">Recent Requests</h3>
+                <h3 className="text-sm font-medium text-foreground">My Queue</h3>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -168,34 +213,122 @@ export default function Dashboard() {
                   <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
+              
+              {/* Filters */}
+              <div className="px-4 py-2 border-b border-border flex items-center gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[160px] max-w-[240px]">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search requests..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-7 text-xs pl-7"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge 
+                    variant={statusFilter === 'all' ? 'default' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    All Status
+                  </Badge>
+                  <Badge 
+                    variant={statusFilter === 'Submitted' ? 'default' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setStatusFilter('Submitted')}
+                  >
+                    Submitted
+                  </Badge>
+                  <Badge 
+                    variant={statusFilter === 'Scoping' ? 'default' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setStatusFilter('Scoping')}
+                  >
+                    Scoping
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge 
+                    variant={urgencyFilter === 'all' ? 'secondary' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setUrgencyFilter('all')}
+                  >
+                    All Urgency
+                  </Badge>
+                  <Badge 
+                    variant={urgencyFilter === 'Immediate' ? 'secondary' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setUrgencyFilter('Immediate')}
+                  >
+                    Immediate
+                  </Badge>
+                </div>
+              </div>
+
               {loading ? (
                 <div className="p-8 text-center text-muted-foreground text-xs">Loading...</div>
-              ) : requests.length === 0 ? (
+              ) : filteredRequests.length === 0 && requests.length === 0 ? (
                 <EmptyState
                   icon={FileText}
-                  title="No requests yet"
-                  description="Create your first request to get started."
+                  title="Start with a minimal request"
+                  description="We'll scope it on a call."
                   action={{
                     label: 'New Request',
                     onClick: () => navigate('/requests/new'),
                   }}
+                  secondaryAction={{
+                    label: 'Schedule Scoping Call',
+                    onClick: () => setScopingDialogOpen(true),
+                    variant: 'outline',
+                  }}
                 />
+              ) : filteredRequests.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-xs">
+                  No requests match your filters.
+                </div>
               ) : (
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Title</th>
+                      <th>Request</th>
                       <th>Status</th>
+                      <th>Urgency</th>
                       <th>Updated</th>
+                      <th>Next Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {requests.map(request => (
+                    {filteredRequests.slice(0, 10).map(request => (
                       <tr key={request.id} onClick={() => navigate(`/requests/${request.id}`)}>
                         <td className="font-medium">{request.title}</td>
                         <td><StatusBadge status={request.status} variant="request" /></td>
+                        <td>
+                          {request.timeline_urgency ? (
+                            <span className="text-xs text-muted-foreground">{request.timeline_urgency}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50">—</span>
+                          )}
+                        </td>
                         <td className="text-muted-foreground">
                           {formatDistanceToNow(new Date(request.updated_at), { addSuffix: true })}
+                        </td>
+                        <td>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 text-[10px] px-2 text-primary hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (getNextAction(request.status) === 'Schedule call') {
+                                setScopingDialogOpen(true);
+                              } else {
+                                navigate(`/requests/${request.id}`);
+                              }
+                            }}
+                          >
+                            {getNextAction(request.status)}
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -239,6 +372,41 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Scoping Call Dialog */}
+      <Dialog open={scopingDialogOpen} onOpenChange={setScopingDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-medium">Schedule Scoping Call</DialogTitle>
+            <DialogDescription className="text-xs">
+              We scope requests on a call to ensure we fully understand your needs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="calendly-url" className="text-xs">
+                Workspace Calendly URL
+              </Label>
+              <Input
+                id="calendly-url"
+                placeholder="https://calendly.com/your-workspace/scoping"
+                value={calendlyUrl}
+                onChange={(e) => setCalendlyUrl(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="w-full h-8 text-xs"
+              onClick={handleOpenCalendly}
+              disabled={!calendlyUrl}
+            >
+              <ExternalLink className="h-3 w-3 mr-1.5" />
+              Open Scheduling Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
