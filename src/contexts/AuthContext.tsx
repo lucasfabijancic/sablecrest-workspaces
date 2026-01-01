@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Membership, Workspace, AppRole } from '@/types/database';
+import { mockWorkspace, mockMembership, mockProfile } from '@/data/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -17,6 +18,7 @@ interface AuthContextType {
   isOpsOrAdmin: boolean;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  isUiShellMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,11 +31,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
 
-  const currentMembership = memberships.find(
-    m => m.workspace_id === currentWorkspace?.id
-  ) || null;
+  // UI Shell Mode: when user is logged in but has no workspaces, or when no user
+  // This allows navigation for UI development purposes
+  const isUiShellMode = !loading && (!user || workspaces.length === 0);
+
+  const currentMembership = isUiShellMode 
+    ? mockMembership 
+    : memberships.find(m => m.workspace_id === currentWorkspace?.id) || null;
 
   const hasRole = (roles: AppRole[]) => {
+    if (isUiShellMode) {
+      // In UI shell mode, simulate admin role for full access
+      return roles.includes('admin');
+    }
     return currentMembership ? roles.includes(currentMembership.role) : false;
   };
 
@@ -125,22 +135,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // In UI shell mode, provide mock workspace as current
+  const effectiveWorkspace = isUiShellMode ? mockWorkspace : currentWorkspace;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
         loading,
-        currentWorkspace,
+        currentWorkspace: effectiveWorkspace,
         currentMembership,
-        workspaces,
-        memberships,
+        workspaces: isUiShellMode ? [mockWorkspace] : workspaces,
+        memberships: isUiShellMode ? [mockMembership] : memberships,
         setCurrentWorkspace,
         refreshWorkspaces,
         hasRole,
         isOpsOrAdmin,
         isAdmin,
         signOut,
+        isUiShellMode,
       }}
     >
       {children}
