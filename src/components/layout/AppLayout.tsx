@@ -2,11 +2,12 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { TopBar } from './TopBar';
+import { OnboardingBanner } from '@/components/OnboardingBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export function AppLayout() {
-  const { user, loading, currentWorkspace, workspaces } = useAuth();
+  const { user, loading, isUiShellMode } = useAuth();
 
   if (loading) {
     return (
@@ -16,13 +17,11 @@ export function AppLayout() {
     );
   }
 
-  if (!user) {
+  // In UI shell mode, we allow navigation without a user/workspace
+  // This enables UI-first development
+  // Only redirect to auth if NOT in UI shell mode and no user
+  if (!user && !isUiShellMode) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // If user has no workspaces, redirect to onboarding
-  if (workspaces.length === 0) {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return (
@@ -31,6 +30,8 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar />
+          {/* Show onboarding banner in UI Shell Mode */}
+          {isUiShellMode && <OnboardingBanner />}
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>

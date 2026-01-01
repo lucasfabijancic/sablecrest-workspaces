@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Command, User, LogOut, Settings, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,36 +18,40 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export function TopBar() {
   const navigate = useNavigate();
-  const { user, signOut, currentWorkspace } = useAuth();
+  const { user, signOut, currentWorkspace, isUiShellMode } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Keyboard shortcut for command palette
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault();
-      setCommandOpen(true);
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(true);
+      }
+    };
 
-  // Register keyboard listener
-  useState(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, []);
+
+  const displayName = isUiShellMode ? 'Demo Workspace' : currentWorkspace?.name;
+  const userEmail = isUiShellMode ? 'demo@sablecrest.io' : user?.email;
 
   return (
     <>
       <header className="h-12 flex items-center justify-between border-b border-border bg-background px-3 shrink-0">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="h-7 w-7" />
-          {currentWorkspace && (
+          {displayName && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>/</span>
-              <span className="font-medium text-foreground">{currentWorkspace.name}</span>
+              <span className="font-medium text-foreground">{displayName}</span>
             </div>
           )}
         </div>
@@ -77,6 +81,21 @@ export function TopBar() {
             New Request
           </Button>
 
+          {/* Theme toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-3.5 w-3.5" />
+            ) : (
+              <Moon className="h-3.5 w-3.5" />
+            )}
+          </Button>
+
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -86,7 +105,10 @@ export function TopBar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="px-2 py-1.5">
-                <p className="text-xs font-medium text-foreground truncate">{user?.email}</p>
+                <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
+                {isUiShellMode && (
+                  <p className="text-[10px] text-muted-foreground">UI Shell Mode</p>
+                )}
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate('/settings')} className="text-xs">
@@ -94,7 +116,7 @@ export function TopBar() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="text-xs text-destructive">
+              <DropdownMenuItem onClick={signOut} className="text-xs text-destructive" disabled={isUiShellMode}>
                 <LogOut className="h-3.5 w-3.5 mr-2" />
                 Sign out
               </DropdownMenuItem>

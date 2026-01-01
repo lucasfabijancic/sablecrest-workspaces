@@ -20,6 +20,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { formatDistanceToNow } from 'date-fns';
 import type { Request, ActivityEvent, Profile } from '@/types/database';
+import { mockRequests, mockActivities, mockStatusCounts, mockWorkspace } from '@/data/mockData';
 
 interface ActivityWithActor extends ActivityEvent {
   actor?: Profile;
@@ -30,7 +31,7 @@ type UrgencyFilter = 'all' | NonNullable<Request['timeline_urgency']>;
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { currentWorkspace } = useAuth();
+  const { currentWorkspace, isUiShellMode } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [activities, setActivities] = useState<ActivityWithActor[]>([]);
   const [statusCounts, setStatusCounts] = useState({
@@ -47,6 +48,15 @@ export default function Dashboard() {
   const [calendlyUrl, setCalendlyUrl] = useState('');
 
   useEffect(() => {
+    // In UI shell mode, use mock data
+    if (isUiShellMode) {
+      setRequests(mockRequests);
+      setActivities(mockActivities);
+      setStatusCounts(mockStatusCounts);
+      setLoading(false);
+      return;
+    }
+
     if (!currentWorkspace) return;
 
     const fetchData = async () => {
@@ -102,7 +112,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, [currentWorkspace]);
+  }, [currentWorkspace, isUiShellMode]);
 
   const formatEventType = (type: string): string => {
     const labels: Record<string, string> = {
@@ -112,6 +122,7 @@ export default function Dashboard() {
       'shortlist_added': 'added to shortlist',
       'file_uploaded': 'uploaded a file',
       'message_sent': 'sent a message',
+      'workspace_created': 'created workspace',
     };
     return labels[type] || type.replace(/_/g, ' ');
   };
@@ -136,19 +147,13 @@ export default function Dashboard() {
     }
   };
 
-  if (!currentWorkspace) {
-    return (
-      <div className="p-6 text-center text-muted-foreground text-sm">
-        Select a workspace to view dashboard.
-      </div>
-    );
-  }
+  const workspaceName = isUiShellMode ? mockWorkspace.name : currentWorkspace?.name;
 
   return (
     <div className="page-container">
       <PageHeader 
         title="Dashboard" 
-        description={`Overview for ${currentWorkspace.name}`}
+        description="Queue + next actions across your workspaces"
         actions={
           <>
             <Button
