@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -7,12 +7,22 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Send, Upload, FileText, MessageSquare, ListChecks, Activity, Eye } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  ArrowLeft, Loader2, Send, Upload, FileText, MessageSquare, ListChecks, Activity, Eye,
+  Scale, Vault, Package, ClipboardList, ChevronRight, Plus, X, CheckCircle, AlertTriangle,
+  Shield, Users, DollarSign, FileCheck, BookOpen, Lock
+} from 'lucide-react';
 import type { Request, ShortlistEntry, FileRecord, ActivityEvent, Profile, FileCategory } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { mockProviders, mockPitchbooks, mockCriteriaSet, mockSelectionPack, mockGovernanceLog, mockEvidenceArtifacts } from '@/data/mockProviders';
+import type { ProviderCardSummary, ProviderPitchbook, CompareProviderView, VerificationLevel } from '@/data/mockProviders';
+import { mockRequests } from '@/data/mockData';
 
 interface MessageWithSender {
   id: string;
@@ -25,15 +35,28 @@ interface MessageWithSender {
 
 const fileCategories: FileCategory[] = ['Brief', 'Security', 'SOW', 'Other'];
 
-type Tab = 'overview' | 'shortlist' | 'messages' | 'files' | 'activity';
+type Tab = 'overview' | 'criteria' | 'shortlist' | 'evidence' | 'messages' | 'files' | 'selection-pack' | 'governance' | 'activity';
+
+const pitchbookTabs = [
+  { id: 'summary', label: 'Summary', icon: Eye },
+  { id: 'delivery', label: 'Delivery System', icon: Users },
+  { id: 'proof', label: 'Proof', icon: FileCheck },
+  { id: 'commercials', label: 'Commercials', icon: DollarSign },
+  { id: 'risk', label: 'Risk & Controls', icon: AlertTriangle },
+  { id: 'security', label: 'Security', icon: Shield },
+  { id: 'references', label: 'References', icon: BookOpen },
+];
 
 export default function RequestDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, isOpsOrAdmin } = useAuth();
+  const { user, isOpsOrAdmin, isUiShellMode } = useAuth();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // Initialize tab from URL query param
+  const initialTab = (searchParams.get('tab') as Tab) || 'overview';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [request, setRequest] = useState<Request | null>(null);
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
@@ -47,8 +70,22 @@ export default function RequestDetail() {
   const [fileCategory, setFileCategory] = useState<FileCategory>('Other');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Shortlist UI state
+  const [selectedPitchbook, setSelectedPitchbook] = useState<ProviderPitchbook | null>(null);
+  const [compareProviders, setCompareProviders] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const [pitchbookTab, setPitchbookTab] = useState('summary');
+
   useEffect(() => {
     if (!id) return;
+
+    // In UI shell mode, use mock data
+    if (isUiShellMode) {
+      const mockRequest = mockRequests.find(r => r.id === id) || mockRequests[0];
+      setRequest(mockRequest);
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
@@ -115,7 +152,7 @@ export default function RequestDetail() {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, isUiShellMode]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversationId || !user) return;
@@ -190,11 +227,38 @@ export default function RequestDetail() {
     return labels[type] || type.replace(/_/g, ' ');
   };
 
+  const toggleCompare = (providerId: string) => {
+    setCompareProviders(prev => {
+      if (prev.includes(providerId)) {
+        return prev.filter(id => id !== providerId);
+      }
+      if (prev.length >= 4) {
+        toast({ title: 'Compare limit', description: 'Maximum 4 providers can be compared', variant: 'destructive' });
+        return prev;
+      }
+      return [...prev, providerId];
+    });
+  };
+
+  const getVerificationBadge = (level: VerificationLevel) => {
+    const styles: Record<VerificationLevel, string> = {
+      'Provider-stated': 'bg-muted text-muted-foreground',
+      'Documented': 'bg-blue-500/10 text-blue-500',
+      'Reference-validated': 'bg-amber-500/10 text-amber-500',
+      'Sablecrest-assessed': 'bg-emerald-500/10 text-emerald-500',
+    };
+    return <span className={cn("text-[9px] px-1.5 py-0.5 rounded", styles[level])}>{level}</span>;
+  };
+
   const tabs: { id: Tab; label: string; icon: typeof Eye; count?: number }[] = [
     { id: 'overview', label: 'Overview', icon: Eye },
-    { id: 'shortlist', label: 'Shortlist', icon: ListChecks, count: shortlist.length },
+    { id: 'criteria', label: 'Criteria & Weights', icon: Scale },
+    { id: 'shortlist', label: 'Shortlist', icon: ListChecks, count: mockProviders.length },
+    { id: 'evidence', label: 'Evidence Vault', icon: Vault },
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages.length },
     { id: 'files', label: 'Files', icon: FileText, count: files.length },
+    { id: 'selection-pack', label: 'Selection Pack', icon: Package },
+    { id: 'governance', label: 'Governance', icon: ClipboardList },
     { id: 'activity', label: 'Activity', icon: Activity, count: activities.length },
   ];
 
@@ -242,14 +306,14 @@ export default function RequestDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border px-6">
-        <div className="flex items-center gap-1">
+      <div className="border-b border-border px-6 overflow-x-auto">
+        <div className="flex items-center gap-1 min-w-max">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
+                "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
                 activeTab === tab.id
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -269,6 +333,7 @@ export default function RequestDetail() {
 
       {/* Tab Content */}
       <div className="page-content animate-fade-in">
+        {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
@@ -282,6 +347,12 @@ export default function RequestDetail() {
                   <p className="text-sm text-foreground whitespace-pre-wrap">{request.context}</p>
                 </div>
               )}
+              <div className="bg-card border border-border rounded-lg p-4">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Scope Hypothesis</h3>
+                <p className="text-sm text-muted-foreground italic">
+                  Scope will be refined on scoping call. Initial hypothesis based on request details.
+                </p>
+              </div>
             </div>
             <div className="space-y-4">
               <div className="bg-card border border-border rounded-lg p-4 space-y-3">
@@ -305,39 +376,234 @@ export default function RequestDetail() {
           </div>
         )}
 
-        {activeTab === 'shortlist' && (
-          <div className="bg-card border border-border rounded-lg">
-            {shortlist.length === 0 ? (
-              <EmptyState
-                icon={ListChecks}
-                title="No providers shortlisted"
-                description="Providers will appear here once they've been added to the shortlist."
-              />
-            ) : (
+        {/* Criteria & Weights Tab */}
+        {activeTab === 'criteria' && (
+          <div className="space-y-6">
+            <div className="bg-card border border-border rounded-lg">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm font-medium text-foreground">Selection Criteria</h3>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Criterion
+                </Button>
+              </div>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Provider</th>
-                    <th>Status</th>
-                    <th>Est. Cost</th>
-                    <th>Fit Notes</th>
+                    <th>Criterion</th>
+                    <th>Category</th>
+                    <th>Weight</th>
+                    <th>Rationale</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shortlist.map(entry => (
-                    <tr key={entry.id} className="cursor-default">
-                      <td className="font-medium">{entry.provider?.name}</td>
-                      <td><StatusBadge status={entry.status} variant="shortlist" /></td>
-                      <td className="text-muted-foreground">{entry.est_cost_band || '—'}</td>
-                      <td className="text-muted-foreground max-w-xs truncate">{entry.fit_notes || '—'}</td>
+                  {mockCriteriaSet.criteria.map(criterion => (
+                    <tr key={criterion.id}>
+                      <td className="font-medium">{criterion.name}</td>
+                      <td>
+                        <Badge variant="outline" className="text-[10px]">{criterion.category}</Badge>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${criterion.weight * 10}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium">{criterion.weight}/10</span>
+                        </div>
+                      </td>
+                      <td className="text-muted-foreground text-xs">{criterion.rationale}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Shortlist Tab with Compare + Pitchbook */}
+        {activeTab === 'shortlist' && (
+          <div className="space-y-4">
+            {/* Provider List */}
+            <div className="bg-card border border-border rounded-lg">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm font-medium text-foreground">Curated Shortlist</h3>
+                <span className="text-xs text-muted-foreground">{mockProviders.length} providers</span>
+              </div>
+              <div className="divide-y divide-border">
+                {mockProviders.map(provider => (
+                  <div key={provider.id} className="p-4 hover:bg-table-hover transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-foreground">{provider.name}</span>
+                          <Badge variant="outline" className="text-[10px]">{provider.category}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{provider.regions.join(', ')}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">{provider.fitSummary}</p>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {provider.capabilities.slice(0, 5).map(cap => (
+                            <span key={cap} className="px-1.5 py-0.5 bg-secondary text-secondary-foreground text-[10px] rounded">
+                              {cap}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Budget:</span>
+                            <span className="ml-1 text-foreground">{provider.budgetBand}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Timeline:</span>
+                            <span className="ml-1 text-foreground">{provider.typicalTimeline}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Lead time:</span>
+                            <span className="ml-1 text-foreground">{provider.leadTime}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Model:</span>
+                            <span className="ml-1 text-foreground">{provider.deliveryModel}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className={cn(
+                              "h-2 w-2 rounded-full",
+                              provider.riskRating === 'Low' && "bg-emerald-500",
+                              provider.riskRating === 'Medium' && "bg-amber-500",
+                              provider.riskRating === 'High' && "bg-rose-500",
+                            )} />
+                            <span className="text-muted-foreground">{provider.riskRating} risk:</span>
+                            <span className="text-foreground">{provider.riskReason}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Proof:</span>
+                            <span className="ml-1 text-foreground">{provider.proofCount} projects</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">References:</span>
+                            <span className={cn(
+                              "ml-1",
+                              provider.referenceAvailability === 'Yes' && "text-emerald-500",
+                              provider.referenceAvailability === 'After NDA' && "text-amber-500",
+                              provider.referenceAvailability === 'Limited' && "text-rose-500",
+                            )}>{provider.referenceAvailability}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => {
+                            const pitchbook = mockPitchbooks[provider.id];
+                            if (pitchbook) setSelectedPitchbook(pitchbook);
+                          }}
+                        >
+                          Expand pitchbook
+                          <ChevronRight className="h-3 w-3 ml-1" />
+                        </Button>
+                        <Button 
+                          variant={compareProviders.includes(provider.id) ? "default" : "outline"}
+                          size="sm" 
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => toggleCompare(provider.id)}
+                        >
+                          {compareProviders.includes(provider.id) ? 'Added' : 'Add to Compare'}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-primary">
+                          Request Intro
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Compare Tray */}
+            {compareProviders.length >= 2 && (
+              <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-3 flex items-center justify-between z-50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Compare ({compareProviders.length})</span>
+                  <div className="flex gap-1">
+                    {compareProviders.map(id => {
+                      const p = mockProviders.find(p => p.id === id);
+                      return p ? (
+                        <Badge key={id} variant="secondary" className="text-[10px]">
+                          {p.name}
+                          <button 
+                            className="ml-1 hover:text-destructive"
+                            onClick={() => toggleCompare(id)}
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setCompareProviders([])}>
+                    Clear
+                  </Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={() => setShowCompare(true)}>
+                    Compare Now
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         )}
 
+        {/* Evidence Vault Tab */}
+        {activeTab === 'evidence' && (
+          <div className="space-y-6">
+            <div className="bg-card border border-border rounded-lg">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm font-medium text-foreground">Evidence Artifacts</h3>
+                <span className="text-xs text-muted-foreground">{mockEvidenceArtifacts.length} documents</span>
+              </div>
+              <div className="divide-y divide-border">
+                {mockEvidenceArtifacts.map(artifact => (
+                  <div key={artifact.id} className="px-4 py-3 flex items-center justify-between hover:bg-table-hover transition-colors">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">{artifact.name}</p>
+                        <p className="text-xs text-muted-foreground">{artifact.type}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getVerificationBadge(artifact.verificationLevel)}
+                      {artifact.ndaRequired && (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-500">
+                          <Lock className="h-3 w-3" />
+                          NDA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-muted/50 border border-border rounded-lg p-4">
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Evidence Labels:</strong> Documents are labeled by verification level. 
+                <span className="ml-2 px-1.5 py-0.5 bg-muted text-muted-foreground rounded text-[9px]">Provider-stated</span>
+                <span className="ml-1 px-1.5 py-0.5 bg-blue-500/10 text-blue-500 rounded text-[9px]">Documented</span>
+                <span className="ml-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded text-[9px]">Reference-validated</span>
+                <span className="ml-1 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 rounded text-[9px]">Sablecrest-assessed</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Messages Tab */}
         {activeTab === 'messages' && (
           <div className="bg-card border border-border rounded-lg">
             <div className="max-h-96 overflow-y-auto p-4 space-y-3">
@@ -382,6 +648,7 @@ export default function RequestDetail() {
           </div>
         )}
 
+        {/* Files Tab */}
         {activeTab === 'files' && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -421,6 +688,89 @@ export default function RequestDetail() {
           </div>
         )}
 
+        {/* Selection Pack Tab */}
+        {activeTab === 'selection-pack' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-foreground">Selection Pack</h3>
+                <p className="text-xs text-muted-foreground">Assemble and export your selection recommendation</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={mockSelectionPack.status === 'Draft' ? 'secondary' : 'default'}>
+                  {mockSelectionPack.status}
+                </Badge>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  Export PDF
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {Object.entries(mockSelectionPack.sections).map(([key, value]) => (
+                <div key={key} className="bg-card border border-border rounded-lg p-4">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </h4>
+                  <p className="text-sm text-foreground">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Governance Tab */}
+        {activeTab === 'governance' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-foreground">Governance Log</h3>
+                <p className="text-xs text-muted-foreground">Weekly delivery oversight and status updates</p>
+              </div>
+              <Button variant="outline" size="sm" className="h-7 text-xs">
+                <Plus className="h-3 w-3 mr-1" />
+                Add Entry
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {mockGovernanceLog.entries.map(entry => (
+                <div key={entry.id} className="bg-card border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">Week {entry.week}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(entry.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-[10px]",
+                        entry.status === 'On Track' && "border-emerald-500 text-emerald-500",
+                        entry.status === 'At Risk' && "border-amber-500 text-amber-500",
+                        entry.status === 'Off Track' && "border-rose-500 text-rose-500",
+                      )}
+                    >
+                      {entry.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-foreground mb-3">{entry.summary}</p>
+                  {entry.keyIssues.length > 0 && (
+                    <div className="mb-2">
+                      <span className="text-xs text-muted-foreground">Issues: </span>
+                      <span className="text-xs text-foreground">{entry.keyIssues.join(', ')}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-xs text-muted-foreground">Next: </span>
+                    <span className="text-xs text-foreground">{entry.nextActions.join(', ')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Activity Tab */}
         {activeTab === 'activity' && (
           <div className="bg-card border border-border rounded-lg">
             {activities.length === 0 ? (
@@ -448,6 +798,240 @@ export default function RequestDetail() {
           </div>
         )}
       </div>
+
+      {/* Pitchbook Sheet */}
+      <Sheet open={!!selectedPitchbook} onOpenChange={() => setSelectedPitchbook(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          {selectedPitchbook && (
+            <>
+              <SheetHeader className="mb-6">
+                <SheetTitle className="text-base font-medium">
+                  {mockProviders.find(p => p.id === selectedPitchbook.providerId)?.name} Pitchbook
+                </SheetTitle>
+              </SheetHeader>
+
+              <Tabs value={pitchbookTab} onValueChange={setPitchbookTab}>
+                <TabsList className="w-full justify-start overflow-x-auto mb-6">
+                  {pitchbookTabs.map(tab => (
+                    <TabsTrigger key={tab.id} value={tab.id} className="text-xs">
+                      <tab.icon className="h-3 w-3 mr-1" />
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                <TabsContent value="summary" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.summary.verificationLevel)}</div>
+                  <p className="text-sm text-foreground">{selectedPitchbook.summary.overview}</p>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Key Strengths</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedPitchbook.summary.keyStrengths.map(s => (
+                        <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Ideal For</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedPitchbook.summary.idealFor.map(s => (
+                        <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="delivery" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.deliverySystem.verificationLevel)}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Team Size</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.deliverySystem.teamSize}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Methodology</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.deliverySystem.methodology}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Delivery Approach</span>
+                    <p className="text-sm text-foreground">{selectedPitchbook.deliverySystem.deliveryApproach}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Key Personnel</h4>
+                    <div className="space-y-2">
+                      {selectedPitchbook.deliverySystem.keyPersonnel.map((p, i) => (
+                        <div key={i} className="bg-muted/50 rounded p-2">
+                          <p className="text-sm font-medium text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.role} · {p.bio}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="proof" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.proof.verificationLevel)}</div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Case Studies</h4>
+                    <div className="space-y-2">
+                      {selectedPitchbook.proof.caseStudies.map((cs, i) => (
+                        <div key={i} className="bg-muted/50 rounded p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-medium text-foreground">{cs.title}</p>
+                            {cs.verified && <CheckCircle className="h-3 w-3 text-emerald-500" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{cs.client}</p>
+                          <p className="text-xs text-foreground mt-1">{cs.outcome}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="commercials" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.commercials.verificationLevel)}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Pricing Model</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.commercials.pricingModel}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Typical Engagement</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.commercials.typicalEngagement}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Payment Terms</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.commercials.paymentTerms}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="risk" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.riskAndControls.verificationLevel)}</div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Insurances</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedPitchbook.riskAndControls.insurances.map(i => (
+                        <Badge key={i} variant="outline" className="text-[10px]">{i}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Certifications</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedPitchbook.riskAndControls.certifications.map(c => (
+                        <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Data Handling</span>
+                    <p className="text-sm text-foreground">{selectedPitchbook.riskAndControls.dataHandling}</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="security" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.security.verificationLevel)}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Security Level</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.security.securityLevel}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Data Residency</span>
+                      <p className="text-sm text-foreground">{selectedPitchbook.security.dataResidency}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Compliance</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedPitchbook.security.compliance.map(c => (
+                        <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="references" className="space-y-4">
+                  <div className="flex justify-end">{getVerificationBadge(selectedPitchbook.references.verificationLevel)}</div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-muted-foreground">Available:</span>
+                    <span className={selectedPitchbook.references.available ? 'text-emerald-500' : 'text-rose-500'}>
+                      {selectedPitchbook.references.available ? 'Yes' : 'No'}
+                    </span>
+                    {selectedPitchbook.references.ndaRequired && (
+                      <span className="flex items-center gap-1 text-amber-500 text-xs">
+                        <Lock className="h-3 w-3" />
+                        NDA Required
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {selectedPitchbook.references.recentReferences.map((ref, i) => (
+                      <div key={i} className="bg-muted/50 rounded p-3">
+                        <p className="text-sm font-medium text-foreground">{ref.company}</p>
+                        <p className="text-xs text-muted-foreground">{ref.contact} · {ref.project}</p>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Compare Sheet */}
+      <Sheet open={showCompare} onOpenChange={setShowCompare}>
+        <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-base font-medium">Compare Providers</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Field</th>
+                  {compareProviders.map(id => {
+                    const p = mockProviders.find(p => p.id === id);
+                    return (
+                      <th key={id} className="text-left py-2 px-2 font-medium text-foreground min-w-[160px]">
+                        {p?.name}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'Budget Band', key: 'budgetBand' },
+                  { label: 'Timeline', key: 'typicalTimeline' },
+                  { label: 'Lead Time', key: 'leadTime' },
+                  { label: 'Delivery Model', key: 'deliveryModel' },
+                  { label: 'Engagement Type', key: 'engagementType' },
+                  { label: 'Risk Rating', key: 'riskRating' },
+                  { label: 'Risk Reason', key: 'riskReason' },
+                  { label: 'Proof Count', key: 'proofCount' },
+                  { label: 'References', key: 'referenceAvailability' },
+                ].map(row => (
+                  <tr key={row.key} className="border-b border-border">
+                    <td className="py-2 pr-4 text-muted-foreground">{row.label}</td>
+                    {compareProviders.map(id => {
+                      const p = mockProviders.find(p => p.id === id);
+                      return (
+                        <td key={id} className="py-2 px-2 text-foreground">
+                          {p ? String((p as any)[row.key]) : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

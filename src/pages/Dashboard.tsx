@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { KPICard } from '@/components/ui/KPICard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { FileText, Send, Target, ListChecks, Play, ArrowRight, Activity, Search, Calendar, ExternalLink } from 'lucide-react';
+import { FileText, Send, Target, ListChecks, Play, ArrowRight, Activity, Search, Calendar, ExternalLink, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ export default function Dashboard() {
     submitted: 0,
     scoping: 0,
     shortlisting: 0,
+    diligence: 0,
     inExecution: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,7 @@ export default function Dashboard() {
           submitted: reqData.filter(r => r.status === 'Submitted').length,
           scoping: reqData.filter(r => r.status === 'Scoping').length,
           shortlisting: reqData.filter(r => r.status === 'Shortlisting').length,
+          diligence: 0, // Placeholder for diligence status
           inExecution: reqData.filter(r => r.status === 'In Execution').length,
         };
         setStatusCounts(counts);
@@ -127,11 +129,40 @@ export default function Dashboard() {
     return labels[type] || type.replace(/_/g, ' ');
   };
 
-  const getNextAction = (status: Request['status']): string => {
-    if (status === 'Submitted' || status === 'Scoping') {
-      return 'Schedule call';
+  // Enterprise decision support: Next Action logic
+  const getNextAction = (status: Request['status']): { label: string; action: 'call' | 'shortlist' | 'selection' | 'governance' | 'review' } => {
+    switch (status) {
+      case 'Submitted':
+      case 'Scoping':
+        return { label: 'Schedule call', action: 'call' };
+      case 'Shortlisting':
+        return { label: 'Review shortlist', action: 'shortlist' };
+      case 'In Execution':
+        return { label: 'Review governance', action: 'governance' };
+      case 'Delivered':
+        return { label: 'Close request', action: 'review' };
+      default:
+        return { label: 'Review', action: 'review' };
     }
-    return 'Review';
+  };
+
+  const handleNextAction = (request: Request, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextAction = getNextAction(request.status);
+    
+    switch (nextAction.action) {
+      case 'call':
+        setScopingDialogOpen(true);
+        break;
+      case 'shortlist':
+        navigate(`/requests/${request.id}?tab=shortlist`);
+        break;
+      case 'governance':
+        navigate(`/requests/${request.id}?tab=governance`);
+        break;
+      default:
+        navigate(`/requests/${request.id}`);
+    }
   };
 
   const filteredRequests = requests.filter(request => {
@@ -178,8 +209,8 @@ export default function Dashboard() {
       />
 
       <div className="page-content space-y-6">
-        {/* KPI Grid - Funnel stages */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* KPI Grid - Enterprise funnel stages */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <KPICard
             label="Submitted"
             value={statusCounts.submitted}
@@ -194,6 +225,11 @@ export default function Dashboard() {
             label="Shortlisting"
             value={statusCounts.shortlisting}
             icon={ListChecks}
+          />
+          <KPICard
+            label="Diligence"
+            value={statusCounts.diligence}
+            icon={CheckCircle}
           />
           <KPICard
             label="In Execution"
@@ -251,6 +287,13 @@ export default function Dashboard() {
                     onClick={() => setStatusFilter('Scoping')}
                   >
                     Scoping
+                  </Badge>
+                  <Badge 
+                    variant={statusFilter === 'Shortlisting' ? 'default' : 'outline'}
+                    className="cursor-pointer text-[10px] h-5"
+                    onClick={() => setStatusFilter('Shortlisting')}
+                  >
+                    Shortlisting
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -323,16 +366,9 @@ export default function Dashboard() {
                             variant="ghost"
                             size="sm"
                             className="h-5 text-[10px] px-2 text-primary hover:text-primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (getNextAction(request.status) === 'Schedule call') {
-                                setScopingDialogOpen(true);
-                              } else {
-                                navigate(`/requests/${request.id}`);
-                              }
-                            }}
+                            onClick={(e) => handleNextAction(request, e)}
                           >
-                            {getNextAction(request.status)}
+                            {getNextAction(request.status).label}
                           </Button>
                         </td>
                       </tr>

@@ -12,8 +12,9 @@ import Dashboard from "./pages/Dashboard";
 import RequestsList from "./pages/RequestsList";
 import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
-import ProvidersList from "./pages/ProvidersList";
+import ProviderRegistry from "./pages/ProviderRegistry";
 import Settings from "./pages/Settings";
+import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences } from "./pages/ProviderPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,8 +46,16 @@ const App = () => (
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="requests/new" element={<NewRequest />} />
                 <Route path="requests/:id" element={<RequestDetail />} />
-                <Route path="providers" element={<ProvidersList />} />
+                <Route path="providers" element={<ProviderRegistry />} />
+                <Route path="selection-packs" element={<Dashboard />} /> {/* Placeholder */}
                 <Route path="settings" element={<Settings />} />
+                {/* Provider Portal Routes */}
+                <Route path="provider-portal" element={<ProviderPortal />}>
+                  <Route index element={<Navigate to="/provider-portal/profile" replace />} />
+                  <Route path="profile" element={<ProviderProfile />} />
+                  <Route path="evidence" element={<ProviderEvidence />} />
+                  <Route path="references" element={<ProviderReferences />} />
+                </Route>
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
