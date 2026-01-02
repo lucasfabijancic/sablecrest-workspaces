@@ -1,5 +1,8 @@
 import type { Request, Workspace, ActivityEvent, Profile, Membership } from '@/types/database';
 
+// User roles for UI shell mode
+export type MockRole = 'buyer' | 'ops' | 'provider' | 'admin';
+
 export const mockWorkspace: Workspace = {
   id: 'mock-workspace-1',
   name: 'Demo Workspace',
@@ -21,6 +24,24 @@ export const mockMembership: Membership = {
   user_id: 'mock-user-1',
   role: 'admin',
   created_at: new Date().toISOString(),
+};
+
+// Current mock role for UI shell mode navigation
+// This can be changed to test different role views
+export let currentMockRole: MockRole = 'admin';
+
+export const setMockRole = (role: MockRole) => {
+  currentMockRole = role;
+};
+
+export const getMockRole = (): MockRole => currentMockRole;
+
+// Role access mappings
+export const roleAccess: Record<MockRole, string[]> = {
+  buyer: ['dashboard', 'requests', 'settings'],
+  ops: ['dashboard', 'requests', 'ops-console', 'provider-registry', 'settings'],
+  provider: ['provider-portal', 'settings'],
+  admin: ['dashboard', 'requests', 'ops-console', 'provider-registry', 'provider-portal', 'settings'],
 };
 
 export const mockRequests: Request[] = [
@@ -79,6 +100,20 @@ export const mockRequests: Request[] = [
     owner_user_id: 'mock-user-1',
     created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'mock-req-5',
+    workspace_id: 'mock-workspace-1',
+    title: 'ML model optimization and deployment',
+    desired_outcome: 'Reduce inference latency by 50%',
+    context: 'Current model too slow for real-time use cases',
+    timeline_urgency: 'Within 1 month',
+    sensitivity: 'Confidential',
+    budget_band: '$50K-$150K',
+    status: 'Delivered',
+    owner_user_id: 'mock-user-1',
+    created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -169,5 +204,6 @@ export const mockStatusCounts = {
   submitted: mockRequests.filter(r => r.status === 'Submitted').length,
   scoping: mockRequests.filter(r => r.status === 'Scoping').length,
   shortlisting: mockRequests.filter(r => r.status === 'Shortlisting').length,
+  diligence: 0, // Placeholder for diligence status
   inExecution: mockRequests.filter(r => r.status === 'In Execution').length,
 };

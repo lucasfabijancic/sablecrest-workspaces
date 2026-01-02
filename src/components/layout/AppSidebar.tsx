@@ -1,4 +1,16 @@
-import { FileText, Building2, Settings, LayoutDashboard, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { 
+  FileText, 
+  Building2, 
+  Settings, 
+  LayoutDashboard, 
+  ChevronsUpDown,
+  ClipboardList,
+  Package,
+  Database,
+  UserCircle,
+  Shield,
+  BookOpen,
+} from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -23,33 +35,83 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-const mainNavItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'ops', 'client'] },
-  { title: 'Requests', url: '/requests', icon: FileText, roles: ['admin', 'ops', 'client'] },
+// Navigation structure organized by role groups
+const buyerNav = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Requests', url: '/requests', icon: FileText },
 ];
 
-const manageNavItems = [
-  { title: 'Providers', url: '/providers', icon: Building2, roles: ['admin', 'ops'] },
-  { title: 'Settings', url: '/settings', icon: Settings, roles: ['admin'] },
+const opsNav = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Requests', url: '/requests', icon: FileText },
+  { title: 'Selection Packs', url: '/selection-packs', icon: Package },
+];
+
+const opsRegistryNav = [
+  { title: 'Provider Registry', url: '/providers', icon: Database },
+];
+
+const providerNav = [
+  { title: 'Profile', url: '/provider-portal/profile', icon: UserCircle },
+  { title: 'Evidence', url: '/provider-portal/evidence', icon: Shield },
+  { title: 'References', url: '/provider-portal/references', icon: BookOpen },
+];
+
+const settingsNav = [
+  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const { currentWorkspace, workspaces, setCurrentWorkspace, currentMembership, hasRole } = useAuth();
+  const { currentWorkspace, workspaces, setCurrentWorkspace, currentMembership, hasRole, isUiShellMode } = useAuth();
   const isCollapsed = state === 'collapsed';
 
-  const visibleMainItems = mainNavItems.filter(item => 
-    hasRole(item.roles as ('admin' | 'ops' | 'client')[])
-  );
-
-  const visibleManageItems = manageNavItems.filter(item => 
-    hasRole(item.roles as ('admin' | 'ops' | 'client')[])
-  );
+  // In UI shell mode, show all navigation for development
+  const showBuyer = isUiShellMode || hasRole(['client', 'admin', 'ops']);
+  const showOps = isUiShellMode || hasRole(['admin', 'ops']);
+  const showProvider = isUiShellMode || hasRole(['admin']); // Provider portal visible to admins for now
+  const showSettings = true; // Always show settings
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
     return location.pathname.startsWith(url);
+  };
+
+  const renderNavGroup = (
+    label: string, 
+    items: { title: string; url: string; icon: typeof LayoutDashboard }[],
+    show: boolean
+  ) => {
+    if (!show || items.length === 0) return null;
+    
+    return (
+      <SidebarGroup>
+        {!isCollapsed && (
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-sidebar-foreground px-2 py-1">
+            {label}
+          </SidebarGroupLabel>
+        )}
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {items.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.url)}
+                  tooltip={item.title}
+                >
+                  <NavLink to={item.url} className="text-xs">
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
   };
 
   return (
@@ -107,61 +169,21 @@ export function AppSidebar() {
       )}
 
       <SidebarContent className="px-2">
-        {/* Main Navigation */}
-        <SidebarGroup>
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-sidebar-foreground px-2 py-1">
-              Main
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleMainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url} className="text-xs">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Buyer Navigation */}
+        {renderNavGroup('Buyer', buyerNav, showBuyer)}
 
-        {/* Manage Navigation */}
-        {visibleManageItems.length > 0 && (
-          <SidebarGroup>
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-sidebar-foreground px-2 py-1">
-                Manage
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleManageItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink to={item.url} className="text-xs">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {/* Ops Navigation */}
+        {renderNavGroup('Ops Console', opsNav.filter(item => 
+          item.title !== 'Dashboard' && item.title !== 'Requests'
+        ), showOps)}
+        
+        {renderNavGroup('Registry', opsRegistryNav, showOps)}
+
+        {/* Provider Portal Navigation */}
+        {renderNavGroup('Provider Portal', providerNav, showProvider)}
+
+        {/* Settings */}
+        {renderNavGroup('', settingsNav, showSettings)}
       </SidebarContent>
 
       <SidebarFooter className="p-3">
@@ -169,7 +191,7 @@ export function AppSidebar() {
           <div className="px-2 py-1.5 rounded-md bg-sidebar-accent/30">
             <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground">Role</p>
             <p className="text-xs font-medium text-sidebar-accent-foreground capitalize">
-              {currentMembership?.role || 'No role'}
+              {isUiShellMode ? 'Admin (Demo)' : currentMembership?.role || 'No role'}
             </p>
           </div>
         )}
