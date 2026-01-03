@@ -13,6 +13,8 @@ import RequestsList from "./pages/RequestsList";
 import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
 import ProviderRegistry from "./pages/ProviderRegistry";
+import Scorecards from "./pages/Scorecards";
+import ShortlistCompare from "./pages/ShortlistCompare";
 import Settings from "./pages/Settings";
 import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences } from "./pages/ProviderPortal";
 import NotFound from "./pages/NotFound";
@@ -47,7 +49,9 @@ const App = () => (
                 <Route path="requests/new" element={<NewRequest />} />
                 <Route path="requests/:id" element={<RequestDetail />} />
                 <Route path="providers" element={<ProviderRegistry />} />
-                <Route path="selection-packs" element={<Dashboard />} /> {/* Placeholder */}
+                <Route path="scorecards" element={<Scorecards />} />
+                <Route path="shortlists" element={<ShortlistCompare />} />
+                <Route path="shortlists/:id" element={<ShortlistCompare />} />
                 <Route path="settings" element={<Settings />} />
                 {/* Provider Portal Routes */}
                 <Route path="provider-portal" element={<ProviderPortal />}>
@@ -55,6 +59,7 @@ const App = () => (
                   <Route path="profile" element={<ProviderProfile />} />
                   <Route path="evidence" element={<ProviderEvidence />} />
                   <Route path="references" element={<ProviderReferences />} />
+                  <Route path="opportunities" element={<div className="p-8 text-muted-foreground">Opportunities - Coming soon</div>} />
                 </Route>
               </Route>
               <Route path="*" element={<NotFound />} />

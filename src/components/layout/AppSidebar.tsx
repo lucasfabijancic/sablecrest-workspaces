@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import { 
   FileText, 
-  Building2, 
   Settings, 
   LayoutDashboard, 
   ChevronsUpDown,
-  ClipboardList,
-  Package,
   Database,
   UserCircle,
   Shield,
   BookOpen,
+  Scale,
+  Layers,
+  Building2,
+  ChevronDown,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,29 +34,32 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-// Navigation structure organized by role groups
+// Role types for dev mode switching
+type DevRole = 'buyer' | 'internal' | 'provider';
+
+// Navigation structure organized by role
 const buyerNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Requests', url: '/requests', icon: FileText },
+  { title: 'Shortlists', url: '/shortlists', icon: Layers },
 ];
 
-const opsNav = [
+const internalNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Requests', url: '/requests', icon: FileText },
-  { title: 'Selection Packs', url: '/selection-packs', icon: Package },
-];
-
-const opsRegistryNav = [
-  { title: 'Provider Registry', url: '/providers', icon: Database },
+  { title: 'Providers', url: '/providers', icon: Database },
+  { title: 'Scorecards', url: '/scorecards', icon: Scale },
+  { title: 'Shortlists', url: '/shortlists', icon: Layers },
 ];
 
 const providerNav = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Opportunities', url: '/provider-portal/opportunities', icon: FileText },
   { title: 'Profile', url: '/provider-portal/profile', icon: UserCircle },
-  { title: 'Evidence', url: '/provider-portal/evidence', icon: Shield },
-  { title: 'References', url: '/provider-portal/references', icon: BookOpen },
 ];
 
 const settingsNav = [
@@ -64,70 +69,59 @@ const settingsNav = [
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const { currentWorkspace, workspaces, setCurrentWorkspace, currentMembership, hasRole, isUiShellMode } = useAuth();
+  const { currentWorkspace, workspaces, setCurrentWorkspace, isUiShellMode } = useAuth();
   const isCollapsed = state === 'collapsed';
-
-  // In UI shell mode, show all navigation for development
-  const showBuyer = isUiShellMode || hasRole(['client', 'admin', 'ops']);
-  const showOps = isUiShellMode || hasRole(['admin', 'ops']);
-  const showProvider = isUiShellMode || hasRole(['admin']); // Provider portal visible to admins for now
-  const showSettings = true; // Always show settings
+  
+  // Dev mode role switcher
+  const [devRole, setDevRole] = useState<DevRole>('internal');
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
+    if (url === '/shortlists') return location.pathname.startsWith('/shortlists');
     return location.pathname.startsWith(url);
   };
 
-  const renderNavGroup = (
-    label: string, 
-    items: { title: string; url: string; icon: typeof LayoutDashboard }[],
-    show: boolean
-  ) => {
-    if (!show || items.length === 0) return null;
-    
-    return (
-      <SidebarGroup>
-        {!isCollapsed && (
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-sidebar-foreground px-2 py-1">
-            {label}
-          </SidebarGroupLabel>
-        )}
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {items.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(item.url)}
-                  tooltip={item.title}
-                >
-                  <NavLink to={item.url} className="text-xs">
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    );
+  // Get nav items based on role
+  const getNavItems = () => {
+    switch (devRole) {
+      case 'buyer':
+        return buyerNav;
+      case 'provider':
+        return providerNav;
+      case 'internal':
+      default:
+        return internalNav;
+    }
   };
+
+  const renderNavItem = (item: { title: string; url: string; icon: typeof LayoutDashboard }) => (
+    <SidebarMenuItem key={item.title}>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive(item.url)}
+        tooltip={item.title}
+      >
+        <NavLink to={item.url} className="text-sm">
+          <item.icon className="h-4 w-4" />
+          <span>{item.title}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-3">
+      <SidebarHeader className="p-4">
         <div className={cn(
-          "flex items-center gap-2",
+          "flex items-center gap-3",
           isCollapsed && "justify-center"
         )}>
-          <div className="h-7 w-7 rounded-md bg-foreground flex items-center justify-center shrink-0">
-            <span className="text-background font-bold text-xs">S</span>
+          <div className="h-8 w-8 rounded-sm bg-foreground flex items-center justify-center shrink-0">
+            <span className="text-background font-medium text-sm">S</span>
           </div>
           {!isCollapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-sidebar-accent-foreground truncate">Sablecrest</p>
-              <p className="text-[10px] text-sidebar-foreground truncate">Operations</p>
+              <p className="text-sm font-medium text-sidebar-accent-foreground">Sablecrest</p>
             </div>
           )}
         </div>
@@ -136,64 +130,101 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       {/* Workspace Selector */}
-      {workspaces.length > 0 && !isCollapsed && (
-        <div className="px-3 py-2">
+      {!isCollapsed && (
+        <div className="px-4 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger className="w-full">
-              <div className="flex items-center justify-between px-2 py-1.5 rounded-md bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors text-left">
+              <div className="flex items-center justify-between px-3 py-2 rounded-sm bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left border border-sidebar-border">
                 <div className="min-w-0">
-                  <p className="text-[10px] text-sidebar-foreground uppercase tracking-wider">Workspace</p>
-                  <p className="text-xs font-medium text-sidebar-accent-foreground truncate">
-                    {currentWorkspace?.name || 'Select'}
+                  <p className="text-xs text-sidebar-foreground">Workspace</p>
+                  <p className="text-sm font-medium text-sidebar-accent-foreground truncate mt-0.5">
+                    {currentWorkspace?.name || (isUiShellMode ? 'Demo Workspace' : 'Select')}
                   </p>
                 </div>
-                <ChevronsUpDown className="h-3 w-3 text-sidebar-foreground shrink-0" />
+                <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground shrink-0" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              {workspaces.map(workspace => (
-                <DropdownMenuItem
-                  key={workspace.id}
-                  onClick={() => setCurrentWorkspace(workspace)}
-                  className={cn(
-                    "text-xs",
-                    currentWorkspace?.id === workspace.id && 'bg-accent'
-                  )}
-                >
-                  {workspace.name}
+            <DropdownMenuContent align="start" className="w-56">
+              {workspaces.length > 0 ? (
+                workspaces.map(workspace => (
+                  <DropdownMenuItem
+                    key={workspace.id}
+                    onClick={() => setCurrentWorkspace(workspace)}
+                    className={cn(
+                      "text-sm",
+                      currentWorkspace?.id === workspace.id && 'bg-accent'
+                    )}
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    {workspace.name}
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+                  No workspaces
                 </DropdownMenuItem>
-              ))}
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       )}
 
-      <SidebarContent className="px-2">
-        {/* Buyer Navigation */}
-        {renderNavGroup('Buyer', buyerNav, showBuyer)}
+      <SidebarContent className="px-3">
+        <SidebarGroup>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-xs text-sidebar-foreground px-2 mb-1">
+              Navigation
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {getNavItems().map(renderNavItem)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-        {/* Ops Navigation */}
-        {renderNavGroup('Ops Console', opsNav.filter(item => 
-          item.title !== 'Dashboard' && item.title !== 'Requests'
-        ), showOps)}
-        
-        {renderNavGroup('Registry', opsRegistryNav, showOps)}
-
-        {/* Provider Portal Navigation */}
-        {renderNavGroup('Provider Portal', providerNav, showProvider)}
-
-        {/* Settings */}
-        {renderNavGroup('', settingsNav, showSettings)}
+        <SidebarGroup>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-xs text-sidebar-foreground px-2 mb-1">
+              Account
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNav.map(renderNavItem)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
-        {!isCollapsed && (
-          <div className="px-2 py-1.5 rounded-md bg-sidebar-accent/30">
-            <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground">Role</p>
-            <p className="text-xs font-medium text-sidebar-accent-foreground capitalize">
-              {isUiShellMode ? 'Admin (Demo)' : currentMembership?.role || 'No role'}
-            </p>
-          </div>
+      <SidebarFooter className="p-4">
+        {/* Dev Mode Role Switcher */}
+        {isUiShellMode && !isCollapsed && (
+          <DropdownMenu>
+            <DropdownMenuTrigger className="w-full">
+              <div className="flex items-center justify-between px-3 py-2 rounded-sm bg-warning/10 border border-warning/30 text-left">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-warning/80">Dev Mode</p>
+                  <p className="text-xs font-medium text-foreground capitalize">{devRole}</p>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-warning/80" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => setDevRole('buyer')} className={cn(devRole === 'buyer' && 'bg-accent')}>
+                <UserCircle className="h-4 w-4 mr-2" />
+                Buyer
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDevRole('internal')} className={cn(devRole === 'internal' && 'bg-accent')}>
+                <Shield className="h-4 w-4 mr-2" />
+                Internal (Sablecrest)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDevRole('provider')} className={cn(devRole === 'provider' && 'bg-accent')}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Provider
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>
