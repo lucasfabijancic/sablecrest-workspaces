@@ -12,9 +12,13 @@ interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description: string;
-  action?: EmptyStateAction;
+  action?: EmptyStateAction | ReactNode;
   secondaryAction?: EmptyStateAction;
   children?: ReactNode;
+}
+
+function isEmptyStateAction(action: EmptyStateAction | ReactNode): action is EmptyStateAction {
+  return action !== null && typeof action === 'object' && 'label' in action && 'onClick' in action;
 }
 
 export function EmptyState({ icon: Icon, title, description, action, secondaryAction, children }: EmptyStateProps) {
@@ -24,21 +28,21 @@ export function EmptyState({ icon: Icon, title, description, action, secondaryAc
       <h3 className="empty-state-title">{title}</h3>
       <p className="empty-state-description">{description}</p>
       {(action || secondaryAction) && (
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex items-center gap-3 mt-5">
           {action && (
-            <Button 
-              size="sm" 
-              className="text-xs h-7" 
-              variant={action.variant || 'default'}
-              onClick={action.onClick}
-            >
-              {action.label}
-            </Button>
+            isEmptyStateAction(action) ? (
+              <Button 
+                size="sm"
+                variant={action.variant || 'default'}
+                onClick={action.onClick}
+              >
+                {action.label}
+              </Button>
+            ) : action
           )}
           {secondaryAction && (
             <Button 
-              size="sm" 
-              className="text-xs h-7" 
+              size="sm"
               variant={secondaryAction.variant || 'outline'}
               onClick={secondaryAction.onClick}
             >

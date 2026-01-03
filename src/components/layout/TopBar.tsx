@@ -45,39 +45,39 @@ export function TopBar() {
 
   return (
     <>
-      <header className="h-12 flex items-center justify-between border-b border-border bg-background px-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="h-7 w-7" />
+      <header className="h-14 flex items-center justify-between border-b border-border bg-background px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="h-8 w-8" />
           {displayName && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>/</span>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="text-border">/</span>
               <span className="font-medium text-foreground">{displayName}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* Command palette trigger */}
           <Button
             variant="outline"
             size="sm"
-            className="h-7 w-48 justify-start text-xs text-muted-foreground border-border hover:border-muted-foreground/50"
+            className="h-8 w-52 justify-start text-sm text-muted-foreground"
             onClick={() => setCommandOpen(true)}
           >
-            <Search className="h-3 w-3 mr-2" />
+            <Search className="h-4 w-4 mr-2" />
             <span>Search...</span>
-            <kbd className="ml-auto pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
-              <Command className="h-2.5 w-2.5" />K
+            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-sm border border-border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
+              <Command className="h-3 w-3" />K
             </kbd>
           </Button>
 
           {/* New Request button */}
           <Button
             size="sm"
-            className="h-7 text-xs"
+            className="h-8"
             onClick={() => navigate('/requests/new')}
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="h-4 w-4 mr-1.5" />
             New Request
           </Button>
 
@@ -85,39 +85,39 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             onClick={toggleTheme}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             {theme === 'dark' ? (
-              <Sun className="h-3.5 w-3.5" />
+              <Sun className="h-4 w-4" />
             ) : (
-              <Moon className="h-3.5 w-3.5" />
+              <Moon className="h-4 w-4" />
             )}
           </Button>
 
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <User className="h-3.5 w-3.5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <User className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5">
-                <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
+            <DropdownMenuContent align="end" className="w-52">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium text-foreground truncate">{userEmail}</p>
                 {isUiShellMode && (
-                  <p className="text-[10px] text-muted-foreground">UI Shell Mode</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">UI Shell Mode</p>
                 )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="text-xs">
-                <Settings className="h-3.5 w-3.5 mr-2" />
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="text-sm">
+                <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="text-xs text-destructive" disabled={isUiShellMode}>
-                <LogOut className="h-3.5 w-3.5 mr-2" />
+              <DropdownMenuItem onClick={signOut} className="text-sm text-destructive" disabled={isUiShellMode}>
+                <LogOut className="h-4 w-4 mr-2" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -27,7 +27,6 @@ interface ActivityWithActor extends ActivityEvent {
 }
 
 type StatusFilter = 'all' | Request['status'];
-type UrgencyFilter = 'all' | NonNullable<Request['timeline_urgency']>;
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -44,12 +43,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>('all');
   const [scopingDialogOpen, setScopingDialogOpen] = useState(false);
   const [calendlyUrl, setCalendlyUrl] = useState('');
 
   useEffect(() => {
-    // In UI shell mode, use mock data
     if (isUiShellMode) {
       setRequests(mockRequests);
       setActivities(mockActivities);
@@ -62,8 +59,6 @@ export default function Dashboard() {
 
     const fetchData = async () => {
       setLoading(true);
-
-      // Fetch all requests for counts and display
       const { data: reqData } = await supabase
         .from('requests')
         .select('*')
@@ -72,19 +67,15 @@ export default function Dashboard() {
 
       if (reqData) {
         setRequests(reqData as Request[]);
-        
-        // Calculate status counts
-        const counts = {
+        setStatusCounts({
           submitted: reqData.filter(r => r.status === 'Submitted').length,
           scoping: reqData.filter(r => r.status === 'Scoping').length,
           shortlisting: reqData.filter(r => r.status === 'Shortlisting').length,
-          diligence: 0, // Placeholder for diligence status
+          diligence: 0,
           inExecution: reqData.filter(r => r.status === 'In Execution').length,
-        };
-        setStatusCounts(counts);
+        });
       }
 
-      // Fetch activity
       const { data: activityData } = await supabase
         .from('activity_events')
         .select('*')
@@ -93,23 +84,8 @@ export default function Dashboard() {
         .limit(8);
 
       if (activityData) {
-        const actorIds = [...new Set(activityData.filter(a => a.actor_user_id).map(a => a.actor_user_id!))];
-        if (actorIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', actorIds);
-          const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-          const activitiesWithActors = activityData.map(a => ({
-            ...a,
-            actor: a.actor_user_id ? profileMap.get(a.actor_user_id) as Profile | undefined : undefined
-          }));
-          setActivities(activitiesWithActors);
-        } else {
-          setActivities(activityData as ActivityWithActor[]);
-        }
+        setActivities(activityData as ActivityWithActor[]);
       }
-
       setLoading(false);
     };
 
@@ -121,26 +97,17 @@ export default function Dashboard() {
       'request_submitted': 'submitted a request',
       'request_updated': 'updated a request',
       'status_changed': 'changed status',
-      'shortlist_added': 'added to shortlist',
-      'file_uploaded': 'uploaded a file',
-      'message_sent': 'sent a message',
-      'workspace_created': 'created workspace',
     };
     return labels[type] || type.replace(/_/g, ' ');
   };
 
-  // Enterprise decision support: Next Action logic
-  const getNextAction = (status: Request['status']): { label: string; action: 'call' | 'shortlist' | 'selection' | 'governance' | 'review' } => {
+  const getNextAction = (status: Request['status']) => {
     switch (status) {
       case 'Submitted':
       case 'Scoping':
         return { label: 'Schedule call', action: 'call' };
       case 'Shortlisting':
         return { label: 'Review shortlist', action: 'shortlist' };
-      case 'In Execution':
-        return { label: 'Review governance', action: 'governance' };
-      case 'Delivered':
-        return { label: 'Close request', action: 'review' };
       default:
         return { label: 'Review', action: 'review' };
     }
@@ -149,36 +116,22 @@ export default function Dashboard() {
   const handleNextAction = (request: Request, e: React.MouseEvent) => {
     e.stopPropagation();
     const nextAction = getNextAction(request.status);
-    
-    switch (nextAction.action) {
-      case 'call':
-        setScopingDialogOpen(true);
-        break;
-      case 'shortlist':
-        navigate(`/requests/${request.id}?tab=shortlist`);
-        break;
-      case 'governance':
-        navigate(`/requests/${request.id}?tab=governance`);
-        break;
-      default:
-        navigate(`/requests/${request.id}`);
+    if (nextAction.action === 'call') {
+      setScopingDialogOpen(true);
+    } else {
+      navigate(`/requests/${request.id}`);
     }
   };
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesUrgency = urgencyFilter === 'all' || request.timeline_urgency === urgencyFilter;
-    return matchesSearch && matchesStatus && matchesUrgency;
+    return matchesSearch && matchesStatus;
   });
 
   const handleOpenCalendly = () => {
-    if (calendlyUrl) {
-      window.open(calendlyUrl, '_blank');
-    }
+    if (calendlyUrl) window.open(calendlyUrl, '_blank');
   };
-
-  const workspaceName = isUiShellMode ? mockWorkspace.name : currentWorkspace?.name;
 
   return (
     <div className="page-container">
@@ -187,262 +140,113 @@ export default function Dashboard() {
         description="Queue + next actions across your workspaces"
         actions={
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setScopingDialogOpen(true)}
-            >
-              <Calendar className="h-3 w-3 mr-1.5" />
-              Schedule Scoping Call
+            <Button variant="outline" size="sm" onClick={() => setScopingDialogOpen(true)}>
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Call
             </Button>
-            <Button
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => navigate('/requests/new')}
-            >
-              <FileText className="h-3 w-3 mr-1.5" />
+            <Button size="sm" onClick={() => navigate('/requests/new')}>
+              <FileText className="h-4 w-4 mr-2" />
               New Request
             </Button>
           </>
         }
       />
 
-      <div className="page-content space-y-6">
-        {/* KPI Grid - Enterprise funnel stages */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <KPICard
-            label="Submitted"
-            value={statusCounts.submitted}
-            icon={Send}
-          />
-          <KPICard
-            label="Scoping"
-            value={statusCounts.scoping}
-            icon={Target}
-          />
-          <KPICard
-            label="Shortlisting"
-            value={statusCounts.shortlisting}
-            icon={ListChecks}
-          />
-          <KPICard
-            label="Diligence"
-            value={statusCounts.diligence}
-            icon={CheckCircle}
-          />
-          <KPICard
-            label="In Execution"
-            value={statusCounts.inExecution}
-            icon={Play}
-          />
-        </div>
+      <div className="page-content space-y-8">
+        <section>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <KPICard label="Submitted" value={statusCounts.submitted} icon={Send} />
+            <KPICard label="Scoping" value={statusCounts.scoping} icon={Target} />
+            <KPICard label="Shortlisting" value={statusCounts.shortlisting} icon={ListChecks} />
+            <KPICard label="Diligence" value={statusCounts.diligence} icon={CheckCircle} />
+            <KPICard label="In Execution" value={statusCounts.inExecution} icon={Play} />
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Queue */}
-          <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-lg">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-medium text-foreground">My Queue</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 text-xs"
-                  onClick={() => navigate('/requests')}
-                >
-                  View all
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="section-title">My Queue</h2>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/requests')}>
+                View all <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
               </div>
-              
-              {/* Filters */}
-              <div className="px-4 py-2 border-b border-border flex items-center gap-2 flex-wrap">
-                <div className="relative flex-1 min-w-[160px] max-w-[240px]">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                  <Input
-                    placeholder="Search requests..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-7 text-xs pl-7"
-                  />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge 
-                    variant={statusFilter === 'all' ? 'default' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setStatusFilter('all')}
-                  >
-                    All Status
+              <div className="flex gap-2">
+                {['all', 'Submitted', 'Scoping', 'Shortlisting'].map(s => (
+                  <Badge key={s} variant={statusFilter === s ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setStatusFilter(s as StatusFilter)}>
+                    {s === 'all' ? 'All' : s}
                   </Badge>
-                  <Badge 
-                    variant={statusFilter === 'Submitted' ? 'default' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setStatusFilter('Submitted')}
-                  >
-                    Submitted
-                  </Badge>
-                  <Badge 
-                    variant={statusFilter === 'Scoping' ? 'default' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setStatusFilter('Scoping')}
-                  >
-                    Scoping
-                  </Badge>
-                  <Badge 
-                    variant={statusFilter === 'Shortlisting' ? 'default' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setStatusFilter('Shortlisting')}
-                  >
-                    Shortlisting
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge 
-                    variant={urgencyFilter === 'all' ? 'secondary' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setUrgencyFilter('all')}
-                  >
-                    All Urgency
-                  </Badge>
-                  <Badge 
-                    variant={urgencyFilter === 'Immediate' ? 'secondary' : 'outline'}
-                    className="cursor-pointer text-[10px] h-5"
-                    onClick={() => setUrgencyFilter('Immediate')}
-                  >
-                    Immediate
-                  </Badge>
-                </div>
+                ))}
               </div>
+            </div>
 
-              {loading ? (
-                <div className="p-8 text-center text-muted-foreground text-xs">Loading...</div>
-              ) : filteredRequests.length === 0 && requests.length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  title="Start with a minimal request"
-                  description="We'll scope it on a call."
-                  action={{
-                    label: 'New Request',
-                    onClick: () => navigate('/requests/new'),
-                  }}
-                  secondaryAction={{
-                    label: 'Schedule Scoping Call',
-                    onClick: () => setScopingDialogOpen(true),
-                    variant: 'outline',
-                  }}
+            {loading ? (
+              <div className="border border-border rounded-sm p-12 text-center text-muted-foreground">Loading...</div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="border border-border rounded-sm">
+                <EmptyState icon={FileText} title="Start with a minimal request" description="We'll scope it on a call."
+                  action={{ label: 'New Request', onClick: () => navigate('/requests/new') }}
+                  secondaryAction={{ label: 'Schedule Call', onClick: () => setScopingDialogOpen(true), variant: 'outline' }}
                 />
-              ) : filteredRequests.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-xs">
-                  No requests match your filters.
-                </div>
-              ) : (
+              </div>
+            ) : (
+              <div className="border border-border rounded-sm overflow-hidden">
                 <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Request</th>
-                      <th>Status</th>
-                      <th>Urgency</th>
-                      <th>Updated</th>
-                      <th>Next Action</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Request</th><th>Status</th><th>Urgency</th><th>Updated</th><th>Next Action</th></tr></thead>
                   <tbody>
                     {filteredRequests.slice(0, 10).map(request => (
                       <tr key={request.id} onClick={() => navigate(`/requests/${request.id}`)}>
                         <td className="font-medium">{request.title}</td>
                         <td><StatusBadge status={request.status} variant="request" /></td>
-                        <td>
-                          {request.timeline_urgency ? (
-                            <span className="text-xs text-muted-foreground">{request.timeline_urgency}</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50">—</span>
-                          )}
-                        </td>
-                        <td className="text-muted-foreground">
-                          {formatDistanceToNow(new Date(request.updated_at), { addSuffix: true })}
-                        </td>
-                        <td>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 text-[10px] px-2 text-primary hover:text-primary"
-                            onClick={(e) => handleNextAction(request, e)}
-                          >
-                            {getNextAction(request.status).label}
-                          </Button>
-                        </td>
+                        <td className="text-muted-foreground">{request.timeline_urgency || '—'}</td>
+                        <td className="text-muted-foreground">{formatDistanceToNow(new Date(request.updated_at), { addSuffix: true })}</td>
+                        <td><Button variant="ghost" size="sm" onClick={(e) => handleNextAction(request, e)}>{getNextAction(request.status).label}</Button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Recent Activity */}
-          <div className="lg:col-span-1">
-            <div className="bg-card border border-border rounded-lg">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-medium text-foreground">Recent Activity</h3>
-                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              {loading ? (
-                <div className="p-8 text-center text-muted-foreground text-xs">Loading...</div>
-              ) : activities.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground text-xs">
-                  No activity recorded yet.
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="section-title">Recent Activity</h2>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="border border-border rounded-sm divide-y divide-border">
+              {activities.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">No activity yet.</div>
+              ) : activities.map(event => (
+                <div key={event.id} className="px-4 py-3 hover:bg-muted/20 transition-colors">
+                  <p className="text-sm"><span className="font-medium">{event.actor?.email?.split('@')[0] || 'System'}</span> {formatEventType(event.event_type)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</p>
                 </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {activities.map(event => (
-                    <div key={event.id} className="px-4 py-2.5 hover:bg-table-hover transition-colors">
-                      <p className="text-xs">
-                        <span className="font-medium text-foreground">
-                          {event.actor?.email?.split('@')[0] || 'System'}
-                        </span>
-                        <span className="text-muted-foreground"> {formatEventType(event.event_type)}</span>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Scoping Call Dialog */}
       <Dialog open={scopingDialogOpen} onOpenChange={setScopingDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm font-medium">Schedule Scoping Call</DialogTitle>
-            <DialogDescription className="text-xs">
-              We scope requests on a call to ensure we fully understand your needs.
-            </DialogDescription>
+            <DialogTitle>Schedule Scoping Call</DialogTitle>
+            <DialogDescription>We scope requests on a call to ensure we fully understand your needs.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="calendly-url" className="text-xs">
-                Workspace Calendly URL
-              </Label>
-              <Input
-                id="calendly-url"
-                placeholder="https://calendly.com/your-workspace/scoping"
-                value={calendlyUrl}
-                onChange={(e) => setCalendlyUrl(e.target.value)}
-                className="h-8 text-xs"
-              />
+              <Label htmlFor="calendly-url">Workspace Calendly URL</Label>
+              <Input id="calendly-url" placeholder="https://calendly.com/your-workspace/scoping" value={calendlyUrl} onChange={(e) => setCalendlyUrl(e.target.value)} />
             </div>
-            <Button
-              size="sm"
-              className="w-full h-8 text-xs"
-              onClick={handleOpenCalendly}
-              disabled={!calendlyUrl}
-            >
-              <ExternalLink className="h-3 w-3 mr-1.5" />
+            <Button className="w-full" onClick={handleOpenCalendly} disabled={!calendlyUrl}>
+              <ExternalLink className="h-4 w-4 mr-2" />
               Open Scheduling Link
             </Button>
           </div>
