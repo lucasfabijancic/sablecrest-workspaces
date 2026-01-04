@@ -14,20 +14,20 @@ interface KPICardProps {
 
 export function KPICard({ label, value, icon: Icon, trend, className }: KPICardProps) {
   return (
-    <div className={cn("kpi-card", className)}>
+    <div className={cn("bg-card border border-border p-5", className)}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="kpi-value">{value}</p>
-          <p className="kpi-label">{label}</p>
+          <p className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">{value}</p>
+          <p className="text-xs text-muted-foreground mt-1.5 uppercase tracking-wider">{label}</p>
         </div>
         {Icon && (
-          <div className="h-8 w-8 rounded-md bg-secondary flex items-center justify-center">
+          <div className="h-8 w-8 bg-muted flex items-center justify-center">
             <Icon className="h-4 w-4 text-muted-foreground" />
           </div>
         )}
       </div>
       {trend && (
-        <div className="mt-2 flex items-center gap-1">
+        <div className="mt-3 flex items-center gap-1.5">
           <span className={cn(
             "text-xs font-medium",
             trend.isPositive ? "text-success" : "text-destructive"

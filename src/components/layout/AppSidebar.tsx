@@ -7,11 +7,11 @@ import {
   Database,
   UserCircle,
   Shield,
-  BookOpen,
   Scale,
   Layers,
   Building2,
   ChevronDown,
+  MessageSquare,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,7 +34,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +45,7 @@ const buyerNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Requests', url: '/requests', icon: FileText },
   { title: 'Shortlists', url: '/shortlists', icon: Layers },
+  { title: 'Messages', url: '/messages', icon: MessageSquare },
 ];
 
 const internalNav = [
@@ -54,6 +54,7 @@ const internalNav = [
   { title: 'Providers', url: '/providers', icon: Database },
   { title: 'Scorecards', url: '/scorecards', icon: Scale },
   { title: 'Shortlists', url: '/shortlists', icon: Layers },
+  { title: 'Messages', url: '/messages', icon: MessageSquare },
 ];
 
 const providerNav = [
@@ -110,19 +111,19 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="px-4 py-5">
         <div className={cn(
           "flex items-center gap-3",
           isCollapsed && "justify-center"
         )}>
-          <div className="h-8 w-8 rounded-sm bg-foreground flex items-center justify-center shrink-0">
-            <span className="text-background font-medium text-sm">S</span>
+          <div className="h-7 w-7 bg-foreground flex items-center justify-center shrink-0">
+            <span className="text-background font-semibold text-xs">S</span>
           </div>
           {!isCollapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-sidebar-accent-foreground">Sablecrest</p>
-            </div>
+            <span className="text-sm font-semibold text-sidebar-accent-foreground tracking-tight">
+              Sablecrest
+            </span>
           )}
         </div>
       </SidebarHeader>
@@ -131,12 +132,12 @@ export function AppSidebar() {
 
       {/* Workspace Selector */}
       {!isCollapsed && (
-        <div className="px-4 py-3">
+        <div className="px-4 py-4">
           <DropdownMenu>
             <DropdownMenuTrigger className="w-full">
-              <div className="flex items-center justify-between px-3 py-2 rounded-sm bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left border border-sidebar-border">
+              <div className="flex items-center justify-between px-3 py-2.5 bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors text-left border border-sidebar-border">
                 <div className="min-w-0">
-                  <p className="text-xs text-sidebar-foreground">Workspace</p>
+                  <p className="text-[10px] text-sidebar-foreground uppercase tracking-wider">Workspace</p>
                   <p className="text-sm font-medium text-sidebar-accent-foreground truncate mt-0.5">
                     {currentWorkspace?.name || (isUiShellMode ? 'Demo Workspace' : 'Select')}
                   </p>
@@ -172,7 +173,7 @@ export function AppSidebar() {
       <SidebarContent className="px-3">
         <SidebarGroup>
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs text-sidebar-foreground px-2 mb-1">
+            <SidebarGroupLabel className="text-[10px] text-sidebar-foreground px-2 mb-2 uppercase tracking-wider">
               Navigation
             </SidebarGroupLabel>
           )}
@@ -183,9 +184,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
+        <SidebarGroup className="mt-6">
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs text-sidebar-foreground px-2 mb-1">
+            <SidebarGroupLabel className="text-[10px] text-sidebar-foreground px-2 mb-2 uppercase tracking-wider">
               Account
             </SidebarGroupLabel>
           )}
@@ -202,12 +203,12 @@ export function AppSidebar() {
         {isUiShellMode && !isCollapsed && (
           <DropdownMenu>
             <DropdownMenuTrigger className="w-full">
-              <div className="flex items-center justify-between px-3 py-2 rounded-sm bg-warning/10 border border-warning/30 text-left">
+              <div className="flex items-center justify-between px-3 py-2 bg-warning/10 border border-warning/20 text-left">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-warning/80">Dev Mode</p>
+                  <p className="text-[9px] uppercase tracking-wider text-warning/70">Dev Mode</p>
                   <p className="text-xs font-medium text-foreground capitalize">{devRole}</p>
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 text-warning/80" />
+                <ChevronDown className="h-3 w-3 text-warning/70" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
