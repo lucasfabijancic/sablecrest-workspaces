@@ -7,15 +7,15 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
+      padding: "2rem",
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['SF Mono', 'Fira Code', 'Consolas', 'monospace'],
       },
       fontSize: {
         'xxs': '0.625rem',
@@ -77,6 +77,7 @@ export default {
           submitted: "hsl(var(--status-submitted))",
           scoping: "hsl(var(--status-scoping))",
           shortlisting: "hsl(var(--status-shortlisting))",
+          diligence: "hsl(var(--status-diligence))",
           execution: "hsl(var(--status-execution))",
           delivered: "hsl(var(--status-delivered))",
           closed: "hsl(var(--status-closed))",
@@ -94,10 +95,14 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "var(--radius)",
-        sm: "var(--radius)",
-        none: "0",
+        lg: "0px",
+        md: "0px",
+        sm: "0px",
+        none: "0px",
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
       },
       keyframes: {
         "accordion-down": {

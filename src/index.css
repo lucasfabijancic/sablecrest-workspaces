@@ -2,150 +2,147 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @layer base {
   :root {
-    /* Light Theme - Midday-inspired: low contrast, calm, squared */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 15%;
+    /* Light Theme - Midday-inspired: clean, minimal, calm */
+    --background: 220 14% 96%;
+    --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
+    --card-foreground: 220 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
+    --popover-foreground: 220 20% 10%;
 
-    --primary: 0 0% 15%;
+    --primary: 220 20% 15%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 40%;
+    --secondary: 220 10% 92%;
+    --secondary-foreground: 220 15% 40%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 50%;
+    --muted: 220 10% 94%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 0 0% 92%;
-    --accent-foreground: 0 0% 15%;
+    --accent: 220 10% 90%;
+    --accent-foreground: 220 20% 10%;
 
-    --destructive: 0 55% 50%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 50% 42%;
+    --success: 150 50% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 70% 50%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 40 80% 50%;
+    --warning-foreground: 40 80% 10%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 96%;
-    --ring: 0 0% 70%;
+    --border: 220 12% 88%;
+    --input: 220 10% 94%;
+    --ring: 220 15% 60%;
 
-    /* Squared corners - almost none */
-    --radius: 0.125rem;
+    --radius: 0px;
 
-    /* Status colors - muted and professional (light mode) */
-    --status-draft: 0 0% 55%;
-    --status-submitted: 215 50% 50%;
-    --status-scoping: 260 40% 50%;
-    --status-shortlisting: 38 60% 50%;
-    --status-diligence: 200 50% 45%;
-    --status-execution: 175 40% 42%;
-    --status-delivered: 145 45% 42%;
-    --status-closed: 0 0% 45%;
+    /* Status colors - light mode */
+    --status-draft: 220 10% 50%;
+    --status-submitted: 220 55% 50%;
+    --status-scoping: 280 40% 50%;
+    --status-shortlisting: 40 70% 50%;
+    --status-diligence: 200 55% 45%;
+    --status-execution: 170 45% 42%;
+    --status-delivered: 150 50% 42%;
+    --status-closed: 220 10% 45%;
 
-    /* Urgency colors (light mode) */
-    --urgency-immediate: 0 55% 50%;
-    --urgency-2weeks: 25 60% 50%;
-    --urgency-1month: 38 60% 48%;
-    --urgency-3months: 210 40% 50%;
-    --urgency-flexible: 145 40% 42%;
+    /* Urgency colors - light mode */
+    --urgency-immediate: 0 65% 55%;
+    --urgency-2weeks: 25 70% 50%;
+    --urgency-1month: 40 70% 48%;
+    --urgency-3months: 220 50% 50%;
+    --urgency-flexible: 150 45% 42%;
 
-    /* Sidebar (light mode) */
-    --sidebar-background: 0 0% 97%;
-    --sidebar-foreground: 0 0% 50%;
-    --sidebar-primary: 0 0% 15%;
+    /* Sidebar - light mode */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 10% 45%;
+    --sidebar-primary: 220 20% 15%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 94%;
-    --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 0 0% 70%;
+    --sidebar-accent: 220 10% 96%;
+    --sidebar-accent-foreground: 220 20% 10%;
+    --sidebar-border: 220 12% 90%;
+    --sidebar-ring: 220 15% 60%;
 
-    /* Table (light mode) */
-    --table-row-hover: 0 0% 97%;
-    --table-header: 0 0% 98%;
+    /* Table - light mode */
+    --table-row-hover: 220 10% 97%;
+    --table-header: 220 14% 98%;
 
-    /* Fonts */
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    /* Fonts - using Inter as Geist-like fallback */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   }
 
   .dark {
-    /* Dark Theme - Midday-inspired: charcoal/graphite, low contrast, calm */
-    --background: 220 10% 10%;
-    --foreground: 220 5% 85%;
+    /* Dark Theme - Graphite, cool neutrals, low contrast */
+    --background: 225 15% 7%;
+    --foreground: 220 10% 88%;
 
-    --card: 220 10% 12%;
-    --card-foreground: 220 5% 85%;
+    --card: 225 14% 9%;
+    --card-foreground: 220 10% 88%;
 
-    --popover: 220 10% 11%;
-    --popover-foreground: 220 5% 85%;
+    --popover: 225 14% 8%;
+    --popover-foreground: 220 10% 88%;
 
-    --primary: 220 5% 90%;
-    --primary-foreground: 220 10% 10%;
+    --primary: 220 10% 92%;
+    --primary-foreground: 225 15% 7%;
 
-    --secondary: 220 8% 16%;
-    --secondary-foreground: 220 5% 65%;
+    --secondary: 225 12% 13%;
+    --secondary-foreground: 220 8% 60%;
 
-    --muted: 220 8% 18%;
-    --muted-foreground: 220 5% 50%;
+    --muted: 225 12% 15%;
+    --muted-foreground: 220 8% 50%;
 
-    --accent: 220 8% 20%;
-    --accent-foreground: 220 5% 85%;
+    --accent: 225 12% 17%;
+    --accent-foreground: 220 10% 88%;
 
-    --destructive: 0 50% 45%;
+    --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 45% 38%;
+    --success: 150 45% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 65% 45%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 40 70% 45%;
+    --warning-foreground: 40 80% 10%;
 
-    --border: 220 8% 18%;
-    --input: 220 8% 16%;
-    --ring: 220 5% 35%;
+    --border: 225 10% 15%;
+    --input: 225 12% 13%;
+    --ring: 220 10% 35%;
 
-    /* Status colors - muted and professional (dark mode) */
-    --status-draft: 0 0% 40%;
-    --status-submitted: 215 45% 45%;
-    --status-scoping: 260 35% 45%;
-    --status-shortlisting: 38 55% 45%;
-    --status-diligence: 200 45% 42%;
-    --status-execution: 175 35% 40%;
-    --status-delivered: 145 40% 38%;
-    --status-closed: 0 0% 35%;
+    /* Status colors - dark mode */
+    --status-draft: 220 8% 40%;
+    --status-submitted: 220 50% 48%;
+    --status-scoping: 280 35% 48%;
+    --status-shortlisting: 40 60% 48%;
+    --status-diligence: 200 50% 42%;
+    --status-execution: 170 40% 40%;
+    --status-delivered: 150 45% 38%;
+    --status-closed: 220 8% 35%;
 
-    /* Urgency colors (dark mode) */
-    --urgency-immediate: 0 50% 48%;
-    --urgency-2weeks: 25 55% 48%;
-    --urgency-1month: 38 55% 45%;
-    --urgency-3months: 210 35% 48%;
-    --urgency-flexible: 145 35% 40%;
+    /* Urgency colors - dark mode */
+    --urgency-immediate: 0 55% 50%;
+    --urgency-2weeks: 25 60% 48%;
+    --urgency-1month: 40 60% 45%;
+    --urgency-3months: 220 45% 48%;
+    --urgency-flexible: 150 40% 40%;
 
-    /* Sidebar (dark mode) */
-    --sidebar-background: 220 10% 8%;
-    --sidebar-foreground: 220 5% 50%;
-    --sidebar-primary: 220 5% 90%;
-    --sidebar-primary-foreground: 220 10% 10%;
-    --sidebar-accent: 220 8% 14%;
-    --sidebar-accent-foreground: 220 5% 85%;
-    --sidebar-border: 220 8% 15%;
-    --sidebar-ring: 220 5% 35%;
+    /* Sidebar - dark mode (slightly darker than main) */
+    --sidebar-background: 225 15% 5%;
+    --sidebar-foreground: 220 8% 50%;
+    --sidebar-primary: 220 10% 92%;
+    --sidebar-primary-foreground: 225 15% 7%;
+    --sidebar-accent: 225 12% 10%;
+    --sidebar-accent-foreground: 220 10% 88%;
+    --sidebar-border: 225 10% 12%;
+    --sidebar-ring: 220 10% 35%;
 
-    /* Table (dark mode) */
-    --table-row-hover: 220 8% 14%;
-    --table-header: 220 10% 11%;
+    /* Table - dark mode */
+    --table-row-hover: 225 12% 10%;
+    --table-header: 225 14% 8%;
   }
 }
 
@@ -156,22 +153,51 @@
 
   html {
     font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-background text-foreground;
+    line-height: 1.6;
   }
 
-  /* Data typography */
-  .font-mono {
+  /* Typography scale */
+  h1 {
+    @apply text-2xl font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+
+  h2 {
+    @apply text-xl font-semibold tracking-tight;
+    line-height: 1.25;
+  }
+
+  h3 {
+    @apply text-lg font-medium tracking-tight;
+    line-height: 1.3;
+  }
+
+  h4 {
+    @apply text-base font-medium;
+    line-height: 1.4;
+  }
+
+  /* Mono font */
+  .font-mono, code, kbd, pre {
     font-family: var(--font-mono);
   }
 
-  /* Custom scrollbar - minimal */
+  /* Tabular numerals for data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Minimal scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -179,162 +205,129 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/15 rounded-none;
+    @apply bg-border rounded-none;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/25;
+    @apply bg-muted-foreground/30;
   }
 }
 
 @layer components {
-  /* Status badge variants */
-  .status-draft { @apply bg-[hsl(var(--status-draft))] text-foreground; }
-  .status-submitted { @apply bg-[hsl(var(--status-submitted))] text-white; }
-  .status-scoping { @apply bg-[hsl(var(--status-scoping))] text-white; }
-  .status-shortlisting { @apply bg-[hsl(var(--status-shortlisting))] text-background; }
-  .status-diligence { @apply bg-[hsl(var(--status-diligence))] text-white; }
-  .status-execution { @apply bg-[hsl(var(--status-execution))] text-white; }
-  .status-delivered { @apply bg-[hsl(var(--status-delivered))] text-white; }
-  .status-closed { @apply bg-[hsl(var(--status-closed))] text-foreground; }
+  /* Page layout - more breathing room */
+  .page-container {
+    @apply flex-1 flex flex-col overflow-hidden;
+  }
 
-  /* Page header pattern - more breathing room */
   .page-header {
-    @apply flex items-center justify-between px-8 py-5 border-b border-border;
+    @apply flex items-center justify-between px-8 py-6 border-b border-border;
   }
 
   .page-header-title {
-    @apply text-lg font-medium text-foreground tracking-tight;
+    @apply text-lg font-semibold text-foreground tracking-tight;
   }
 
   .page-header-subtitle {
-    @apply text-sm text-muted-foreground mt-0.5;
+    @apply text-sm text-muted-foreground mt-1;
   }
 
   .page-header-actions {
     @apply flex items-center gap-3;
   }
 
-  /* Page container */
-  .page-container {
-    @apply flex-1 overflow-auto;
-  }
-
   .page-content {
-    @apply px-8 py-6;
+    @apply flex-1 overflow-auto px-8 py-8;
   }
 
-  /* Section spacing */
+  /* Section spacing - more generous */
   .section {
-    @apply mb-8;
+    @apply mb-10;
   }
 
   .section-header {
-    @apply flex items-center justify-between mb-4;
+    @apply flex items-center justify-between mb-5;
   }
 
   .section-title {
-    @apply text-sm font-medium text-foreground;
+    @apply text-sm font-medium text-foreground tracking-wide uppercase;
   }
 
   .section-subtitle {
-    @apply text-xs text-muted-foreground;
+    @apply text-xs text-muted-foreground mt-0.5;
   }
 
-  /* Data table styling - hairline borders, calm */
+  /* Data table - hairline borders, good row height */
   .data-table {
     @apply w-full text-sm;
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left font-medium text-muted-foreground bg-[hsl(var(--table-header))] border-b border-border text-xs tracking-wide;
+    @apply px-4 py-3.5 text-left font-medium text-muted-foreground bg-table-header border-b border-border text-xs uppercase tracking-wider;
   }
 
   .data-table td {
-    @apply px-4 py-3 border-b border-border/50 text-foreground;
+    @apply px-4 py-4 border-b border-border text-foreground;
   }
 
   .data-table tbody tr {
-    @apply transition-colors;
+    @apply transition-colors cursor-pointer;
   }
 
   .data-table tbody tr:hover td {
-    @apply bg-[hsl(var(--table-row-hover))];
+    @apply bg-table-hover;
   }
 
-  /* Card variants - squared, border-based, no heavy shadow */
-  .card-elevated {
-    @apply bg-card border border-border rounded-sm;
-  }
-
-  .card-subtle {
-    @apply bg-card/50 border border-border/50 rounded-sm;
-  }
-
-  /* KPI Card - simplified */
-  .kpi-card {
-    @apply bg-card border border-border rounded-sm px-5 py-4;
-  }
-
-  .kpi-value {
-    @apply text-2xl font-medium text-foreground tracking-tight;
-  }
-
-  .kpi-label {
-    @apply text-xs text-muted-foreground mt-1;
-  }
-
-  /* Input focus states - subtle */
-  .input-focus {
-    @apply focus:ring-1 focus:ring-ring/50 focus:border-ring;
-  }
-
-  /* Empty state - calmer */
-  .empty-state {
-    @apply flex flex-col items-center justify-center py-16 text-center;
-  }
-
-  .empty-state-icon {
-    @apply h-10 w-10 text-muted-foreground/40 mb-4;
-  }
-
-  .empty-state-title {
-    @apply text-sm font-medium text-foreground;
-  }
-
-  .empty-state-description {
-    @apply text-sm text-muted-foreground mt-1.5 max-w-sm;
-  }
-
-  /* Filter bar - cleaner */
+  /* Filter bar */
   .filter-bar {
     @apply flex items-center gap-4 py-4 px-8 border-b border-border bg-background;
   }
 
-  /* Tabs - understated */
-  .tabs-compact {
-    @apply flex items-center gap-0.5 p-0.5 bg-muted/50 rounded-sm;
+  /* KPI Card - clean, framed */
+  .kpi-card {
+    @apply bg-card border border-border p-5;
   }
 
-  .tab-compact {
-    @apply px-4 py-2 text-sm font-normal rounded-sm transition-colors;
+  .kpi-value {
+    @apply text-2xl font-semibold text-foreground tabular-nums tracking-tight;
   }
 
-  .tab-compact-active {
-    @apply bg-background text-foreground shadow-sm;
+  .kpi-label {
+    @apply text-xs text-muted-foreground mt-1.5 uppercase tracking-wider;
   }
 
-  .tab-compact-inactive {
-    @apply text-muted-foreground hover:text-foreground;
+  /* Card variants */
+  .card-elevated {
+    @apply bg-card border border-border;
   }
 
-  /* Action list - for next actions */
+  .card-subtle {
+    @apply bg-muted/30 border border-border;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-20 text-center;
+  }
+
+  .empty-state-icon {
+    @apply h-12 w-12 text-muted-foreground/30 mb-5;
+  }
+
+  .empty-state-title {
+    @apply text-base font-medium text-foreground;
+  }
+
+  .empty-state-description {
+    @apply text-sm text-muted-foreground mt-2 max-w-md;
+  }
+
+  /* Action list */
   .action-list {
     @apply divide-y divide-border;
   }
 
   .action-item {
-    @apply flex items-center justify-between py-3 px-4 hover:bg-muted/30 transition-colors;
+    @apply flex items-center justify-between py-4 px-5 hover:bg-muted/30 transition-colors;
   }
 
   .action-item-label {
@@ -344,16 +337,26 @@
   .action-item-meta {
     @apply text-xs text-muted-foreground;
   }
+
+  /* Status badges - subtle */
+  .status-draft { @apply bg-muted text-muted-foreground; }
+  .status-submitted { @apply bg-[hsl(var(--status-submitted))]/15 text-[hsl(var(--status-submitted))]; }
+  .status-scoping { @apply bg-[hsl(var(--status-scoping))]/15 text-[hsl(var(--status-scoping))]; }
+  .status-shortlisting { @apply bg-[hsl(var(--status-shortlisting))]/15 text-[hsl(var(--status-shortlisting))]; }
+  .status-diligence { @apply bg-[hsl(var(--status-diligence))]/15 text-[hsl(var(--status-diligence))]; }
+  .status-execution { @apply bg-[hsl(var(--status-execution))]/15 text-[hsl(var(--status-execution))]; }
+  .status-delivered { @apply bg-[hsl(var(--status-delivered))]/15 text-[hsl(var(--status-delivered))]; }
+  .status-closed { @apply bg-muted text-muted-foreground; }
 }
 
 @layer utilities {
-  /* Animation utilities - subtle */
+  /* Subtle animations */
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
+    from { opacity: 0; transform: translateY(-2px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -362,18 +365,11 @@
   }
 
   @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-8px); }
+    from { opacity: 0; transform: translateX(-4px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
-  /* Truncate multi-line */
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
+  /* Line clamp */
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -381,9 +377,15 @@
     overflow: hidden;
   }
 
-  /* Hairline border utility */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hairline border */
   .border-hairline {
-    border-width: 1px;
-    @apply border-border/60;
+    @apply border border-border/50;
   }
 }

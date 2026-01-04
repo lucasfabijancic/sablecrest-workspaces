@@ -15,6 +15,7 @@ import NewRequest from "./pages/NewRequest";
 import ProviderRegistry from "./pages/ProviderRegistry";
 import Scorecards from "./pages/Scorecards";
 import ShortlistCompare from "./pages/ShortlistCompare";
+import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences } from "./pages/ProviderPortal";
 import NotFound from "./pages/NotFound";
@@ -52,6 +53,7 @@ const App = () => (
                 <Route path="scorecards" element={<Scorecards />} />
                 <Route path="shortlists" element={<ShortlistCompare />} />
                 <Route path="shortlists/:id" element={<ShortlistCompare />} />
+                <Route path="messages" element={<Messages />} />
                 <Route path="settings" element={<Settings />} />
                 {/* Provider Portal Routes */}
                 <Route path="provider-portal" element={<ProviderPortal />}>

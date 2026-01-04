@@ -8,16 +8,17 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Loader2, FileText, Filter, X } from 'lucide-react';
+import { Plus, Search, Loader2, FileText, X } from 'lucide-react';
 import type { Request, RequestStatus, TimelineUrgency, SensitivityLevel } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
+import { mockRequests } from '@/data/mockData';
 
 const statusOptions: RequestStatus[] = ['Draft', 'Submitted', 'Scoping', 'Shortlisting', 'In Execution', 'Delivered', 'Closed'];
 const urgencyOptions: TimelineUrgency[] = ['Immediate', 'Within 2 weeks', 'Within 1 month', 'Within 3 months', 'Flexible'];
 const sensitivityOptions: SensitivityLevel[] = ['Standard', 'Confidential', 'Highly Confidential'];
 
 export default function RequestsList() {
-  const { currentWorkspace } = useAuth();
+  const { currentWorkspace, isUiShellMode } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -36,6 +37,12 @@ export default function RequestsList() {
   };
 
   useEffect(() => {
+    if (isUiShellMode) {
+      setRequests(mockRequests);
+      setLoading(false);
+      return;
+    }
+
     if (!currentWorkspace) return;
 
     const fetchRequests = async () => {
@@ -66,15 +73,15 @@ export default function RequestsList() {
     };
 
     fetchRequests();
-  }, [currentWorkspace, statusFilter, urgencyFilter, sensitivityFilter]);
+  }, [currentWorkspace, statusFilter, urgencyFilter, sensitivityFilter, isUiShellMode]);
 
   const filteredRequests = requests.filter(r =>
     r.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (!currentWorkspace) {
+  if (!currentWorkspace && !isUiShellMode) {
     return (
-      <div className="p-6 text-center text-muted-foreground text-sm">
+      <div className="p-8 text-center text-muted-foreground text-sm">
         Select a workspace to view requests.
       </div>
     );
@@ -86,8 +93,8 @@ export default function RequestsList() {
         title="Requests" 
         description={`${filteredRequests.length} request${filteredRequests.length !== 1 ? 's' : ''}`}
         actions={
-          <Button size="sm" className="h-7 text-xs" onClick={() => navigate('/requests/new')}>
-            <Plus className="h-3 w-3 mr-1" />
+          <Button size="sm" onClick={() => navigate('/requests/new')}>
+            <Plus className="h-4 w-4 mr-1.5" />
             New Request
           </Button>
         }
@@ -96,54 +103,54 @@ export default function RequestsList() {
       {/* Filter Bar */}
       <div className="filter-bar">
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search requests..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-7 text-xs"
+            className="pl-10 h-9"
           />
         </div>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 h-7 text-xs">
+          <SelectTrigger className="w-36 h-9">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">All statuses</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             {statusOptions.map(s => (
-              <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+              <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-          <SelectTrigger className="w-36 h-7 text-xs">
+          <SelectTrigger className="w-40 h-9">
             <SelectValue placeholder="Urgency" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">All urgencies</SelectItem>
+            <SelectItem value="all">All urgencies</SelectItem>
             {urgencyOptions.map(u => (
-              <SelectItem key={u} value={u} className="text-xs">{u}</SelectItem>
+              <SelectItem key={u} value={u}>{u}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={sensitivityFilter} onValueChange={setSensitivityFilter}>
-          <SelectTrigger className="w-36 h-7 text-xs">
+          <SelectTrigger className="w-40 h-9">
             <SelectValue placeholder="Sensitivity" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">All levels</SelectItem>
+            <SelectItem value="all">All levels</SelectItem>
             {sensitivityOptions.map(s => (
-              <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+              <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearFilters}>
-            <X className="h-3 w-3 mr-1" />
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-4 w-4 mr-1" />
             Clear
           </Button>
         )}
@@ -152,7 +159,7 @@ export default function RequestsList() {
       {/* Table */}
       <div className="page-content p-0">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : filteredRequests.length === 0 ? (
