@@ -4,145 +4,151 @@
 
 @layer base {
   :root {
-    /* Light Theme - Midday-inspired: clean, minimal, calm */
-    --background: 220 14% 96%;
-    --foreground: 220 20% 10%;
+    /* Light Theme - Clean, minimal, Apple-inspired */
+    --background: 0 0% 97%;
+    --foreground: 0 0% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 0 0% 7%;
 
-    --primary: 220 20% 15%;
+    --primary: 0 0% 12%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 10% 92%;
-    --secondary-foreground: 220 15% 40%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 35%;
 
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 220 10% 90%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 50% 40%;
+    --success: 145 50% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 80% 50%;
-    --warning-foreground: 40 80% 10%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
 
-    --border: 220 12% 88%;
-    --input: 220 10% 94%;
-    --ring: 220 15% 60%;
+    --border: 0 0% 89%;
+    --input: 0 0% 94%;
+    --ring: 0 0% 60%;
 
-    --radius: 0px;
+    --radius: 0rem;
 
     /* Status colors - light mode */
-    --status-draft: 220 10% 50%;
-    --status-submitted: 220 55% 50%;
-    --status-scoping: 280 40% 50%;
-    --status-shortlisting: 40 70% 50%;
+    --status-draft: 0 0% 50%;
+    --status-submitted: 220 60% 50%;
+    --status-scoping: 280 45% 50%;
+    --status-shortlisting: 38 75% 50%;
     --status-diligence: 200 55% 45%;
-    --status-execution: 170 45% 42%;
-    --status-delivered: 150 50% 42%;
-    --status-closed: 220 10% 45%;
+    --status-execution: 165 50% 40%;
+    --status-delivered: 145 50% 40%;
+    --status-closed: 0 0% 45%;
 
     /* Urgency colors - light mode */
-    --urgency-immediate: 0 65% 55%;
-    --urgency-2weeks: 25 70% 50%;
-    --urgency-1month: 40 70% 48%;
-    --urgency-3months: 220 50% 50%;
-    --urgency-flexible: 150 45% 42%;
+    --urgency-immediate: 0 65% 50%;
+    --urgency-2weeks: 25 75% 50%;
+    --urgency-1month: 38 80% 48%;
+    --urgency-3months: 220 55% 50%;
+    --urgency-flexible: 145 50% 40%;
 
     /* Sidebar - light mode */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 10% 45%;
-    --sidebar-primary: 220 20% 15%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 45%;
+    --sidebar-primary: 0 0% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 96%;
-    --sidebar-accent-foreground: 220 20% 10%;
-    --sidebar-border: 220 12% 90%;
-    --sidebar-ring: 220 15% 60%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 0 0% 60%;
 
     /* Table - light mode */
-    --table-row-hover: 220 10% 97%;
-    --table-header: 220 14% 98%;
+    --table-row-hover: 0 0% 97%;
+    --table-header: 0 0% 98%;
 
-    /* Fonts - using Inter as Geist-like fallback */
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    /* Overlay - light mode */
+    --overlay-backdrop: 0 0% 100% / 0.35;
+
+    /* Apple-like system font stack */
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
 
   .dark {
-    /* Dark Theme - Graphite, cool neutrals, low contrast */
-    --background: 225 15% 7%;
-    --foreground: 220 10% 88%;
+    /* Dark Theme - True charcoal, not bluish */
+    --background: 0 0% 5%;
+    --foreground: 0 0% 90%;
 
-    --card: 225 14% 9%;
-    --card-foreground: 220 10% 88%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 90%;
 
-    --popover: 225 14% 8%;
-    --popover-foreground: 220 10% 88%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 90%;
 
-    --primary: 220 10% 92%;
-    --primary-foreground: 225 15% 7%;
+    --primary: 0 0% 92%;
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 225 12% 13%;
-    --secondary-foreground: 220 8% 60%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 55%;
 
-    --muted: 225 12% 15%;
-    --muted-foreground: 220 8% 50%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 50%;
 
-    --accent: 225 12% 17%;
-    --accent-foreground: 220 10% 88%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 90%;
 
-    --destructive: 0 55% 48%;
+    --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 45% 38%;
+    --success: 145 45% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 70% 45%;
-    --warning-foreground: 40 80% 10%;
+    --warning: 38 70% 45%;
+    --warning-foreground: 38 80% 10%;
 
-    --border: 225 10% 15%;
-    --input: 225 12% 13%;
-    --ring: 220 10% 35%;
+    --border: 0 0% 14%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 30%;
 
     /* Status colors - dark mode */
-    --status-draft: 220 8% 40%;
+    --status-draft: 0 0% 40%;
     --status-submitted: 220 50% 48%;
-    --status-scoping: 280 35% 48%;
-    --status-shortlisting: 40 60% 48%;
+    --status-scoping: 280 38% 48%;
+    --status-shortlisting: 38 65% 48%;
     --status-diligence: 200 50% 42%;
-    --status-execution: 170 40% 40%;
-    --status-delivered: 150 45% 38%;
-    --status-closed: 220 8% 35%;
+    --status-execution: 165 45% 38%;
+    --status-delivered: 145 45% 38%;
+    --status-closed: 0 0% 35%;
 
     /* Urgency colors - dark mode */
-    --urgency-immediate: 0 55% 50%;
+    --urgency-immediate: 0 55% 48%;
     --urgency-2weeks: 25 60% 48%;
-    --urgency-1month: 40 60% 45%;
+    --urgency-1month: 38 60% 45%;
     --urgency-3months: 220 45% 48%;
-    --urgency-flexible: 150 40% 40%;
+    --urgency-flexible: 145 42% 38%;
 
-    /* Sidebar - dark mode (slightly darker than main) */
-    --sidebar-background: 225 15% 5%;
-    --sidebar-foreground: 220 8% 50%;
-    --sidebar-primary: 220 10% 92%;
-    --sidebar-primary-foreground: 225 15% 7%;
-    --sidebar-accent: 225 12% 10%;
-    --sidebar-accent-foreground: 220 10% 88%;
-    --sidebar-border: 225 10% 12%;
-    --sidebar-ring: 220 10% 35%;
+    /* Sidebar - dark mode (slightly darker) */
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 50%;
+    --sidebar-primary: 0 0% 92%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 8%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 12%;
+    --sidebar-ring: 0 0% 30%;
 
     /* Table - dark mode */
-    --table-row-hover: 225 12% 10%;
-    --table-header: 225 14% 8%;
+    --table-row-hover: 0 0% 8%;
+    --table-header: 0 0% 6%;
+
+    /* Overlay - dark mode */
+    --overlay-backdrop: 0 0% 0% / 0.50;
   }
 }
 
@@ -153,7 +159,6 @@
 
   html {
     font-family: var(--font-sans);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -161,22 +166,26 @@
   body {
     @apply bg-background text-foreground;
     line-height: 1.6;
+    letter-spacing: -0.011em;
   }
 
-  /* Typography scale */
+  /* Typography scale - Apple-clean, sentence case */
   h1 {
     @apply text-2xl font-semibold tracking-tight;
     line-height: 1.2;
+    letter-spacing: -0.022em;
   }
 
   h2 {
     @apply text-xl font-semibold tracking-tight;
     line-height: 1.25;
+    letter-spacing: -0.019em;
   }
 
   h3 {
-    @apply text-lg font-medium tracking-tight;
+    @apply text-lg font-medium;
     line-height: 1.3;
+    letter-spacing: -0.014em;
   }
 
   h4 {
@@ -205,7 +214,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-none;
+    @apply bg-border;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -214,7 +223,7 @@
 }
 
 @layer components {
-  /* Page layout - more breathing room */
+  /* Page layout - generous spacing */
   .page-container {
     @apply flex-1 flex flex-col overflow-hidden;
   }
@@ -224,7 +233,7 @@
   }
 
   .page-header-title {
-    @apply text-lg font-semibold text-foreground tracking-tight;
+    @apply text-xl font-semibold text-foreground tracking-tight;
   }
 
   .page-header-subtitle {
@@ -241,15 +250,15 @@
 
   /* Section spacing - more generous */
   .section {
-    @apply mb-10;
+    @apply mb-12;
   }
 
   .section-header {
-    @apply flex items-center justify-between mb-5;
+    @apply flex items-center justify-between mb-6;
   }
 
   .section-title {
-    @apply text-sm font-medium text-foreground tracking-wide uppercase;
+    @apply text-sm font-medium text-muted-foreground;
   }
 
   .section-subtitle {
@@ -262,11 +271,11 @@
   }
 
   .data-table th {
-    @apply px-4 py-3.5 text-left font-medium text-muted-foreground bg-table-header border-b border-border text-xs uppercase tracking-wider;
+    @apply px-5 py-4 text-left font-medium text-muted-foreground bg-table-header border-b border-border text-xs;
   }
 
   .data-table td {
-    @apply px-4 py-4 border-b border-border text-foreground;
+    @apply px-5 py-4 border-b border-border text-foreground;
   }
 
   .data-table tbody tr {
@@ -279,12 +288,12 @@
 
   /* Filter bar */
   .filter-bar {
-    @apply flex items-center gap-4 py-4 px-8 border-b border-border bg-background;
+    @apply flex items-center gap-4 py-5 px-8 border-b border-border bg-background;
   }
 
   /* KPI Card - clean, framed */
   .kpi-card {
-    @apply bg-card border border-border p-5;
+    @apply bg-card border border-border p-6;
   }
 
   .kpi-value {
@@ -292,7 +301,7 @@
   }
 
   .kpi-label {
-    @apply text-xs text-muted-foreground mt-1.5 uppercase tracking-wider;
+    @apply text-sm text-muted-foreground mt-1;
   }
 
   /* Card variants */
@@ -306,11 +315,11 @@
 
   /* Empty state */
   .empty-state {
-    @apply flex flex-col items-center justify-center py-20 text-center;
+    @apply flex flex-col items-center justify-center py-24 text-center;
   }
 
   .empty-state-icon {
-    @apply h-12 w-12 text-muted-foreground/30 mb-5;
+    @apply h-12 w-12 text-muted-foreground/30 mb-6;
   }
 
   .empty-state-title {
@@ -327,7 +336,7 @@
   }
 
   .action-item {
-    @apply flex items-center justify-between py-4 px-5 hover:bg-muted/30 transition-colors;
+    @apply flex items-center justify-between py-5 px-6 hover:bg-muted/30 transition-colors;
   }
 
   .action-item-label {
@@ -347,6 +356,20 @@
   .status-execution { @apply bg-[hsl(var(--status-execution))]/15 text-[hsl(var(--status-execution))]; }
   .status-delivered { @apply bg-[hsl(var(--status-delivered))]/15 text-[hsl(var(--status-delivered))]; }
   .status-closed { @apply bg-muted text-muted-foreground; }
+
+  /* Frosted glass overlay backdrop */
+  .overlay-backdrop {
+    @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-md;
+  }
+
+  .dark .overlay-backdrop {
+    @apply bg-black/60;
+  }
+
+  .light .overlay-backdrop,
+  :root .overlay-backdrop {
+    @apply bg-white/35;
+  }
 }
 
 @layer utilities {
@@ -367,6 +390,15 @@
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(-4px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   /* Line clamp */
