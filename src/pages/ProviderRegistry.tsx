@@ -67,49 +67,49 @@ export default function ProviderRegistry() {
   return (
     <div className="page-container">
       <PageHeader 
-        title="Provider Registry" 
+        title="Providers" 
         description={`${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} curated by Sablecrest`}
       />
 
       {/* Filter Bar */}
       <div className="filter-bar">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 max-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input
-            placeholder="Search by name or capability..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-9"
+            className="pl-8 h-8 text-[11px]"
           />
         </div>
 
         <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-          <SelectTrigger className="w-36 h-9">
+          <SelectTrigger className="w-32 h-8 text-[11px]">
             <SelectValue placeholder="Budget" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All budgets</SelectItem>
+            <SelectItem value="all" className="text-[11px]">All budgets</SelectItem>
             {budgetOptions.map(b => (
-              <SelectItem key={b} value={b}>{b}</SelectItem>
+              <SelectItem key={b} value={b} className="text-[11px]">{b}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={verificationFilter} onValueChange={setVerificationFilter}>
-          <SelectTrigger className="w-36 h-9">
-            <SelectValue placeholder="Verification" />
+          <SelectTrigger className="w-32 h-8 text-[11px]">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="all" className="text-[11px]">All status</SelectItem>
             {verificationOptions.map(v => (
-              <SelectItem key={v} value={v}>{v}</SelectItem>
+              <SelectItem key={v} value={v} className="text-[11px]">{v}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
+          <Button variant="ghost" size="sm" className="h-8 text-[10px]" onClick={clearFilters}>
+            <X className="h-3 w-3 mr-1" />
             Clear
           </Button>
         )}
@@ -135,17 +135,17 @@ export default function ProviderRegistry() {
 
       {/* Compare Tray */}
       {compareList.length >= 2 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 flex items-center justify-between z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 flex items-center justify-between z-40">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Compare ({compareList.length})</span>
-            <div className="flex gap-2">
+            <span className="text-[11px] font-medium">Compare ({compareList.length})</span>
+            <div className="flex gap-1.5">
               {compareList.map(id => {
                 const p = providers.find(prov => prov.id === id);
                 return p ? (
-                  <Badge key={id} variant="secondary" className="text-xs">
+                  <Badge key={id} variant="secondary" className="text-[10px] pr-1">
                     {p.name}
-                    <button className="ml-1.5 hover:text-destructive" onClick={() => toggleCompare(id)}>
-                      <X className="h-3 w-3" />
+                    <button className="ml-1 hover:text-destructive" onClick={() => toggleCompare(id)}>
+                      <X className="h-2.5 w-2.5" />
                     </button>
                   </Badge>
                 ) : null;
@@ -153,8 +153,8 @@ export default function ProviderRegistry() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setCompareList([])}>Clear</Button>
-            <Button size="sm" onClick={() => setShowCompare(true)}>Compare Now</Button>
+            <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => setCompareList([])}>Clear</Button>
+            <Button size="sm" className="h-7 text-[10px]" onClick={() => setShowCompare(true)}>Compare Now</Button>
           </div>
         </div>
       )}
