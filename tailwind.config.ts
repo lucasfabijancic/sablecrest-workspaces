@@ -7,18 +7,24 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1.5rem",
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
       fontFamily: {
-        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', '"Apple Color Emoji"', '"Segoe UI Emoji"', 'sans-serif'],
-        mono: ['ui-monospace', '"SF Mono"', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Inter"', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"'],
+        mono: ['"SF Mono"', 'SFMono-Regular', 'ui-monospace', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
       },
       fontSize: {
         'xxs': '0.625rem',
+        'xs': ['0.6875rem', { lineHeight: '1rem' }],
+        'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+        'base': ['0.875rem', { lineHeight: '1.375rem' }],
+        'lg': ['1rem', { lineHeight: '1.5rem' }],
+        'xl': ['1.125rem', { lineHeight: '1.625rem' }],
+        '2xl': ['1.25rem', { lineHeight: '1.75rem' }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -93,14 +99,21 @@ export default {
           hover: "hsl(var(--table-row-hover))",
           header: "hsl(var(--table-header))",
         },
+        surface: {
+          1: "hsl(var(--surface-1))",
+          2: "hsl(var(--surface-2))",
+          3: "hsl(var(--surface-3))",
+        },
       },
       borderRadius: {
         lg: "0px",
         md: "0px",
         sm: "0px",
         none: "0px",
+        DEFAULT: "0px",
       },
       spacing: {
+        '14': '3.5rem',
         '18': '4.5rem',
         '22': '5.5rem',
       },
@@ -114,11 +127,11 @@ export default {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(-2px)" },
+          from: { opacity: "0", transform: "translateY(-1px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-in": {
-          from: { opacity: "0", transform: "translateX(-4px)" },
+          from: { opacity: "0", transform: "translateX(-3px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
         "scale-in": {
@@ -129,9 +142,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.15s ease-out",
-        "slide-in": "slide-in 0.2s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
+        "fade-in": "fade-in 0.12s ease-out",
+        "slide-in": "slide-in 0.15s ease-out",
+        "scale-in": "scale-in 0.18s ease-out",
       },
     },
   },

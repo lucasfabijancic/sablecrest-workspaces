@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { X, Eye, Users, FileCheck, DollarSign, AlertTriangle, Shield, BookOpen, Building2, Briefcase } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, CheckCircle, Calendar, FileText, Shield, DollarSign, Users, AlertTriangle, BookOpen, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import type { ProviderCardSummary, ProviderPitchbook, VerificationLevel } from '@/data/mockProviders';
 
@@ -11,19 +12,20 @@ interface ProviderDossierOverlayProps {
   onClose: () => void;
 }
 
-const dossierSections = [
-  { id: 'overview', label: 'Overview', icon: Eye },
-  { id: 'capabilities', label: 'Capabilities', icon: Briefcase },
-  { id: 'delivery', label: 'Delivery', icon: Users },
-  { id: 'security', label: 'Security', icon: Shield },
-  { id: 'commercials', label: 'Commercials', icon: DollarSign },
-  { id: 'evidence', label: 'Evidence', icon: FileCheck },
-  { id: 'references', label: 'References', icon: BookOpen },
-  { id: 'risks', label: 'Risks', icon: AlertTriangle },
-  { id: 'next-steps', label: 'Next Steps', icon: Building2 },
+const dossierTabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'capabilities', label: 'Capabilities' },
+  { id: 'delivery', label: 'Delivery' },
+  { id: 'security', label: 'Security' },
+  { id: 'commercials', label: 'Commercials' },
+  { id: 'evidence', label: 'Evidence' },
+  { id: 'references', label: 'References' },
+  { id: 'risks', label: 'Risks' },
 ];
 
 export function ProviderDossierOverlay({ provider, pitchbook, onClose }: ProviderDossierOverlayProps) {
+  const [activeTab, setActiveTab] = useState('overview');
+
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -44,266 +46,280 @@ export function ProviderDossierOverlay({ provider, pitchbook, onClose }: Provide
   const getVerificationBadge = (level: VerificationLevel) => {
     const styles: Record<VerificationLevel, string> = {
       'Provider-stated': 'bg-muted text-muted-foreground',
-      'Documented': 'bg-status-submitted/15 text-status-submitted',
-      'Reference-validated': 'bg-warning/15 text-warning',
-      'Sablecrest-assessed': 'bg-success/15 text-success',
+      'Documented': 'bg-status-submitted/12 text-status-submitted',
+      'Reference-validated': 'bg-warning/12 text-warning',
+      'Sablecrest-assessed': 'bg-success/12 text-success',
     };
-    return <span className={cn("text-xs px-2 py-0.5 inline-block", styles[level])}>{level}</span>;
+    return <span className={cn("text-[10px] px-1.5 py-0.5 inline-block", styles[level])}>{level}</span>;
   };
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
       {/* Frosted backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/55 dark:bg-black/65 backdrop-blur-sm"
         onClick={onClose}
       />
       
       {/* Solid content surface */}
-      <div className="absolute inset-4 md:inset-8 lg:inset-12 bg-card border border-border overflow-hidden flex flex-col animate-scale-in">
-        {/* Header */}
-        <header className="flex items-center justify-between px-8 py-6 border-b border-border shrink-0">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">{provider.name}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{provider.category}</p>
+      <div className="absolute inset-3 md:inset-6 lg:inset-8 bg-card border border-border overflow-hidden flex flex-col animate-scale-in">
+        {/* Facts Strip Header */}
+        <header className="shrink-0 border-b border-border">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 bg-muted flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">{provider.name}</h2>
+                <p className="text-[11px] text-muted-foreground">{provider.category}</p>
+              </div>
+              <Badge variant={provider.verificationStatus === 'Verified' ? 'default' : 'secondary'} className="text-[10px] ml-2">
+                {provider.verificationStatus}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-7 text-[10px]">
+                <FileText className="h-3 w-3 mr-1" />
+                Request NDA
+              </Button>
+              <Button variant="outline" size="sm" className="h-7 text-[10px]">
+                Add to Shortlist
+              </Button>
+              <Button size="sm" className="h-7 text-[10px]">
+                <Calendar className="h-3 w-3 mr-1" />
+                Schedule Intro
+              </Button>
+              <button
+                onClick={onClose}
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ml-2"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={onClose}>
-              Request Intro
-            </Button>
-            <button
-              onClick={onClose}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </button>
+          
+          {/* Quick facts strip */}
+          <div className="flex items-center gap-6 px-5 py-2.5 bg-muted/30 border-t border-border text-[11px]">
+            <div>
+              <span className="text-muted-foreground">Evidence:</span>{' '}
+              <span className="font-medium tabular-nums">{provider.evidenceCompleteness}%</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Regions:</span>{' '}
+              <span className="font-medium">{provider.regions?.join(', ') || 'Global'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Budget:</span>{' '}
+              <span className="font-medium">{provider.budgetBand || 'Varies'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Timeline:</span>{' '}
+              <span className="font-medium">{pitchbook.commercials.typicalEngagement}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {provider.capabilities?.slice(0, 3).map(cap => (
+                <Badge key={cap} variant="secondary" className="text-[9px] px-1.5 py-0">
+                  {cap}
+                </Badge>
+              ))}
+              {(provider.capabilities?.length || 0) > 3 && (
+                <span className="text-[10px] text-muted-foreground">+{(provider.capabilities?.length || 0) - 3}</span>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left sidebar navigation */}
-          <nav className="w-56 border-r border-border shrink-0 overflow-y-auto py-4">
-            {dossierSections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                className="flex items-center gap-3 px-6 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        {/* Tabs + Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="shrink-0 h-10 w-full justify-start px-5 bg-transparent border-b border-border gap-0">
+            {dossierTabs.map((tab) => (
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id}
+                className="h-10 px-3 text-[11px] data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-transparent rounded-none"
               >
-                <section.icon className="h-4 w-4" />
-                {section.label}
-              </a>
+                {tab.label}
+              </TabsTrigger>
             ))}
-          </nav>
+          </TabsList>
 
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto px-8 py-8">
-            <div className="max-w-3xl space-y-12">
-              {/* Overview Section */}
-              <section id="overview">
-                <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-medium text-foreground">Overview</h3>
+          <div className="flex-1 overflow-y-auto px-5 py-5">
+            <div className="max-w-4xl">
+              <TabsContent value="overview" className="mt-0 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
                   {getVerificationBadge(pitchbook.summary.verificationLevel)}
                 </div>
-                <p className="text-foreground leading-relaxed">{pitchbook.summary.overview}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{pitchbook.summary.overview}</p>
                 
-                <div className="mt-6 grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h4 className="text-sm text-muted-foreground mb-3">Key Strengths</h4>
-                    <div className="flex flex-wrap gap-2">
+                <div className="grid gap-5 md:grid-cols-2 mt-6">
+                  <div className="p-4 bg-muted/30 border border-border">
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Key Strengths</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {pitchbook.summary.keyStrengths.map(s => (
-                        <Badge key={s} variant="secondary">{s}</Badge>
+                        <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm text-muted-foreground mb-3">Ideal For</h4>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="p-4 bg-muted/30 border border-border">
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Ideal For</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {pitchbook.summary.idealFor.map(s => (
-                        <Badge key={s} variant="outline">{s}</Badge>
+                        <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
                       ))}
                     </div>
                   </div>
                 </div>
+              </TabsContent>
 
-              </section>
-
-              {/* Capabilities Section */}
-              <section id="capabilities">
-                <h3 className="text-lg font-medium text-foreground mb-4">Capabilities</h3>
-                <div className="flex flex-wrap gap-2">
+              <TabsContent value="capabilities" className="mt-0 space-y-5">
+                <div className="flex flex-wrap gap-1.5">
                   {provider.capabilities?.map(cap => (
-                    <Badge key={cap} variant="secondary">{cap}</Badge>
+                    <Badge key={cap} variant="secondary" className="text-[10px]">{cap}</Badge>
                   ))}
                 </div>
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 mt-4">
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Budget Band</h4>
-                    <p className="text-foreground font-medium">{provider.budgetBand || 'Not specified'}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Budget Band</h4>
+                    <p className="text-[12px] font-medium">{provider.budgetBand || 'Not specified'}</p>
                   </div>
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Regions</h4>
-                    <p className="text-foreground font-medium">{provider.regions?.join(', ') || 'Global'}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Regions</h4>
+                    <p className="text-[12px] font-medium">{provider.regions?.join(', ') || 'Global'}</p>
                   </div>
                 </div>
-              </section>
+              </TabsContent>
 
-              {/* Delivery Section */}
-              <section id="delivery">
-                <h3 className="text-lg font-medium text-foreground mb-4">Delivery System</h3>
-                <div className="grid gap-6 md:grid-cols-2">
+              <TabsContent value="delivery" className="mt-0 space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Team Size</h4>
-                    <p className="text-foreground font-medium">{pitchbook.deliverySystem.teamSize}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Team Size</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.deliverySystem.teamSize}</p>
                   </div>
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Methodology</h4>
-                    <p className="text-foreground font-medium">{pitchbook.deliverySystem.methodology}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Methodology</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.deliverySystem.methodology}</p>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <h4 className="text-sm text-muted-foreground mb-3">Key Personnel</h4>
-                  <div className="space-y-3">
+                <div>
+                  <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Key Personnel</h4>
+                  <div className="space-y-2">
                     {pitchbook.deliverySystem.keyPersonnel.map(person => (
-                      <div key={person.name} className="p-4 bg-muted/30 border border-border">
-                        <p className="font-medium text-foreground">{person.name}</p>
-                        <p className="text-sm text-muted-foreground">{person.role}</p>
-                        <p className="text-sm text-muted-foreground mt-2">{person.bio}</p>
+                      <div key={person.name} className="p-3 bg-muted/30 border border-border">
+                        <p className="text-[12px] font-medium text-foreground">{person.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{person.role}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{person.bio}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-              </section>
+              </TabsContent>
 
-              {/* Security Section */}
-              <section id="security">
-                <h3 className="text-lg font-medium text-foreground mb-4">Security & Compliance</h3>
-                <div className="grid gap-6 md:grid-cols-2">
+              <TabsContent value="security" className="mt-0 space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Security Level</h4>
-                    <Badge variant={pitchbook.security.securityLevel === 'Enterprise' ? 'default' : 'secondary'}>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Security Level</h4>
+                    <Badge variant={pitchbook.security.securityLevel === 'Enterprise' ? 'default' : 'secondary'} className="text-[10px]">
                       {pitchbook.security.securityLevel}
                     </Badge>
                   </div>
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Data Residency</h4>
-                    <p className="text-foreground font-medium">{pitchbook.security.dataResidency}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Data Residency</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.security.dataResidency}</p>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <h4 className="text-sm text-muted-foreground mb-3">Compliance</h4>
-                  <div className="flex flex-wrap gap-2">
+                <div>
+                  <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Compliance</h4>
+                  <div className="flex flex-wrap gap-1.5">
                     {pitchbook.security.compliance.map(c => (
-                      <Badge key={c} variant="outline">{c}</Badge>
+                      <Badge key={c} variant="outline" className="text-[10px]">{c}</Badge>
                     ))}
                   </div>
                 </div>
-              </section>
+              </TabsContent>
 
-              {/* Commercials Section */}
-              <section id="commercials">
-                <h3 className="text-lg font-medium text-foreground mb-4">Commercials</h3>
-                <div className="grid gap-6 md:grid-cols-3">
+              <TabsContent value="commercials" className="mt-0 space-y-5">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Pricing Model</h4>
-                    <p className="text-foreground font-medium">{pitchbook.commercials.pricingModel}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pricing Model</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.commercials.pricingModel}</p>
                   </div>
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Typical Engagement</h4>
-                    <p className="text-foreground font-medium">{pitchbook.commercials.typicalEngagement}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Typical Engagement</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.commercials.typicalEngagement}</p>
                   </div>
                   <div className="p-4 bg-muted/30 border border-border">
-                    <h4 className="text-sm text-muted-foreground mb-1">Payment Terms</h4>
-                    <p className="text-foreground font-medium">{pitchbook.commercials.paymentTerms}</p>
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payment Terms</h4>
+                    <p className="text-[12px] font-medium">{pitchbook.commercials.paymentTerms}</p>
                   </div>
                 </div>
-              </section>
+              </TabsContent>
 
-              {/* Evidence Section */}
-              <section id="evidence">
-                <h3 className="text-lg font-medium text-foreground mb-4">Evidence</h3>
-                <div className="space-y-4">
-                  {pitchbook.proof.caseStudies.map(cs => (
-                    <div key={cs.title} className="p-4 bg-muted/30 border border-border">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-foreground">{cs.title}</p>
-                        {cs.verified && <Badge variant="default" className="text-xs">Verified</Badge>}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{cs.client}</p>
-                      <p className="text-sm mt-2">{cs.outcome}</p>
+              <TabsContent value="evidence" className="mt-0 space-y-4">
+                {pitchbook.proof.caseStudies.map(cs => (
+                  <div key={cs.title} className="p-4 bg-muted/30 border border-border">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[12px] font-medium text-foreground">{cs.title}</p>
+                      {cs.verified && <Badge variant="default" className="text-[9px]">Verified</Badge>}
                     </div>
-                  ))}
-                </div>
-              </section>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{cs.client}</p>
+                    <p className="text-[11px] mt-2">{cs.outcome}</p>
+                  </div>
+                ))}
+              </TabsContent>
 
-              {/* References Section */}
-              <section id="references">
-                <h3 className="text-lg font-medium text-foreground mb-4">References</h3>
-                <div className="flex items-center gap-3 mb-4">
-                  <Badge variant={pitchbook.references.available ? 'default' : 'secondary'}>
+              <TabsContent value="references" className="mt-0 space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant={pitchbook.references.available ? 'default' : 'secondary'} className="text-[10px]">
                     {pitchbook.references.available ? 'Available' : 'Not available'}
                   </Badge>
                   {pitchbook.references.ndaRequired && (
-                    <Badge variant="outline">NDA Required</Badge>
+                    <Badge variant="outline" className="text-[10px]">NDA Required</Badge>
                   )}
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {pitchbook.references.recentReferences.map(ref => (
-                    <div key={ref.company} className="p-4 bg-muted/30 border border-border">
-                      <p className="font-medium text-foreground">{ref.company}</p>
-                      <p className="text-sm text-muted-foreground">{ref.contact}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{ref.project}</p>
+                    <div key={ref.company} className="p-3 bg-muted/30 border border-border">
+                      <p className="text-[12px] font-medium text-foreground">{ref.company}</p>
+                      <p className="text-[11px] text-muted-foreground">{ref.contact}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{ref.project}</p>
                     </div>
                   ))}
                 </div>
-              </section>
+              </TabsContent>
 
-              {/* Risks Section */}
-              <section id="risks">
-                <h3 className="text-lg font-medium text-foreground mb-4">Risk & Controls</h3>
-                <div className="grid gap-6 md:grid-cols-2">
+              <TabsContent value="risks" className="mt-0 space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <h4 className="text-sm text-muted-foreground mb-3">Insurances</h4>
-                    <div className="flex flex-wrap gap-2">
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Insurances</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {pitchbook.riskAndControls.insurances.map(i => (
-                        <Badge key={i} variant="outline">{i}</Badge>
+                        <Badge key={i} variant="outline" className="text-[10px]">{i}</Badge>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm text-muted-foreground mb-3">Certifications</h4>
-                    <div className="flex flex-wrap gap-2">
+                    <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Certifications</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {pitchbook.riskAndControls.certifications.map(c => (
-                        <Badge key={c} variant="secondary">{c}</Badge>
+                        <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 p-4 bg-muted/30 border border-border">
-                  <h4 className="text-sm text-muted-foreground mb-2">Data Handling</h4>
-                  <p className="text-sm">{pitchbook.riskAndControls.dataHandling}</p>
+                <div className="p-3 bg-muted/30 border border-border">
+                  <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Data Handling</h4>
+                  <p className="text-[11px]">{pitchbook.riskAndControls.dataHandling}</p>
                 </div>
-                <div className="mt-4 p-4 bg-muted/30 border border-border">
-                  <h4 className="text-sm text-muted-foreground mb-2">Escalation Process</h4>
-                  <p className="text-sm">{pitchbook.riskAndControls.escalationProcess}</p>
+                <div className="p-3 bg-muted/30 border border-border">
+                  <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Escalation Process</h4>
+                  <p className="text-[11px]">{pitchbook.riskAndControls.escalationProcess}</p>
                 </div>
-              </section>
-
-              {/* Next Steps Section */}
-              <section id="next-steps">
-                <h3 className="text-lg font-medium text-foreground mb-4">Next Steps</h3>
-                <div className="p-6 bg-muted/30 border border-border">
-                  <p className="text-muted-foreground mb-4">Ready to explore this provider further?</p>
-                  <div className="flex gap-3">
-                    <Button>Request Intro Call</Button>
-                    <Button variant="outline">Ask Clarifications</Button>
-                  </div>
-                </div>
-              </section>
+              </TabsContent>
             </div>
           </div>
-        </div>
+        </Tabs>
       </div>
     </div>
   );
