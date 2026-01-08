@@ -93,8 +93,7 @@ export default function RequestsList() {
       <PageHeader 
         title="Requests" 
         description={`${filteredRequests.length} request${filteredRequests.length !== 1 ? 's' : ''}`}
-        backTo="/dashboard"
-        backLabel="Dashboard"
+        showBack
         actions={
           <Button size="sm" onClick={() => navigate('/requests/new')}>
             <Plus className="h-4 w-4 mr-1.5" />

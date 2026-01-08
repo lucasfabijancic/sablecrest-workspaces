@@ -8,22 +8,26 @@ interface PageHeaderProps {
   description?: string;
   actions?: ReactNode;
   children?: ReactNode;
-  backTo?: string;
+  showBack?: boolean;
   backLabel?: string;
 }
 
-export function PageHeader({ title, description, actions, children, backTo, backLabel = 'Back' }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, children, showBack = false, backLabel = 'Back' }: PageHeaderProps) {
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   return (
     <div className="page-header">
       <div className="min-w-0 flex-1 flex items-center gap-3">
-        {backTo && (
+        {showBack && (
           <Button 
             variant="ghost" 
             size="sm" 
             className="h-7 text-xs shrink-0 hover-slide" 
-            onClick={() => navigate(backTo)}
+            onClick={handleBack}
           >
             <ArrowLeft className="h-3 w-3 mr-1" />
             {backLabel}

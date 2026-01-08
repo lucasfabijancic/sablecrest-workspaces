@@ -77,8 +77,7 @@ export default function ProviderRegistry() {
       <PageHeader 
         title="Providers" 
         description={`${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} curated by Sablecrest`}
-        backTo="/dashboard"
-        backLabel="Dashboard"
+        showBack
       />
 
       {/* Filter Bar */}
