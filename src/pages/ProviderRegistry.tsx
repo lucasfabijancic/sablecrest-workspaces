@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Database, X } from 'lucide-react';
+import { Search, Database, X, Loader2 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/Skeletons';
 import { mockProviders, mockPitchbooks, type ProviderCardSummary, type ProviderPitchbook } from '@/data/mockProviders';
 import type { BudgetBand } from '@/types/database';
 import { ProvidersTable } from '@/components/providers/ProvidersTable';
@@ -17,6 +18,7 @@ const verificationOptions = ['Verified', 'Pending', 'Incomplete'];
 
 export default function ProviderRegistry() {
   const [providers] = useState<ProviderCardSummary[]>(mockProviders);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [budgetFilter, setBudgetFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<string>('all');
@@ -24,6 +26,12 @@ export default function ProviderRegistry() {
   const [pitchbook, setPitchbook] = useState<ProviderPitchbook | null>(null);
   const [compareList, setCompareList] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+
+  // Simulate loading state
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const hasFilters = budgetFilter !== 'all' || verificationFilter !== 'all' || search !== '';
 
@@ -69,6 +77,8 @@ export default function ProviderRegistry() {
       <PageHeader 
         title="Providers" 
         description={`${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} curated by Sablecrest`}
+        backTo="/dashboard"
+        backLabel="Dashboard"
       />
 
       {/* Filter Bar */}
@@ -117,7 +127,11 @@ export default function ProviderRegistry() {
 
       {/* Table */}
       <div className="page-content p-0">
-        {filteredProviders.length === 0 ? (
+        {loading ? (
+          <div className="p-6">
+            <TableSkeleton rows={6} columns={6} />
+          </div>
+        ) : filteredProviders.length === 0 ? (
           <EmptyState
             icon={Database}
             title={hasFilters ? "No matching providers" : "No providers in registry"}

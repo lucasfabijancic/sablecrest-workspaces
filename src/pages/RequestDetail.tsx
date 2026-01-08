@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -264,8 +265,47 @@ export default function RequestDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="page-container">
+        <div className="page-header">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-7 w-16" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-border">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <div className="border-b border-border px-6 py-2">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-24" />
+            ))}
+          </div>
+        </div>
+        <div className="page-content">
+          <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-2 space-y-4">
+              <div className="border border-border p-4">
+                <Skeleton className="h-3 w-24 mb-3" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+            <div className="border border-border p-4">
+              <Skeleton className="h-3 w-16 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex justify-between">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -287,12 +327,8 @@ export default function RequestDetail() {
     <div className="page-container">
       <PageHeader
         title={request.title}
-        actions={
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate('/requests')}>
-            <ArrowLeft className="h-3 w-3 mr-1" />
-            Back
-          </Button>
-        }
+        backTo="/requests"
+        backLabel="Requests"
       />
 
       {/* Status bar */}

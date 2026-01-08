@@ -285,11 +285,15 @@
   }
 
   .data-table tbody tr {
-    @apply transition-colors cursor-pointer;
+    @apply transition-all duration-150 cursor-pointer;
   }
 
   .data-table tbody tr:hover td {
     @apply bg-table-hover;
+  }
+
+  .data-table tbody tr:hover {
+    @apply translate-x-0.5;
   }
 
   /* Filter bar */
@@ -342,7 +346,11 @@
   }
 
   .action-item {
-    @apply flex items-center justify-between py-3.5 px-4 hover:bg-muted/30 transition-colors;
+    @apply flex items-center justify-between py-3.5 px-4 hover:bg-muted/30 transition-all duration-150;
+  }
+
+  .action-item:hover {
+    @apply translate-x-0.5;
   }
 
   .action-item-label {
@@ -351,6 +359,31 @@
 
   .action-item-meta {
     @apply text-[11px] text-muted-foreground;
+  }
+
+  /* Interactive hover utilities */
+  .hover-lift {
+    @apply transition-all duration-150;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-0.5 shadow-sm;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-200;
+  }
+
+  .hover-glow:hover {
+    @apply bg-accent/50;
+  }
+
+  .hover-slide {
+    @apply transition-all duration-150;
+  }
+
+  .hover-slide:hover {
+    @apply translate-x-0.5;
   }
 
   /* Status badges - subtle */
@@ -378,7 +411,11 @@
   }
 
   .pipeline-item {
-    @apply flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-muted-foreground;
+    @apply flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-all duration-150 cursor-default;
+  }
+
+  .pipeline-item:hover {
+    @apply bg-muted/70;
   }
 
   .pipeline-item.active {
