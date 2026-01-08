@@ -116,42 +116,42 @@ export function CompareOverlay({ providers, onClose }: CompareOverlayProps) {
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
       {/* Frosted backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       
       {/* Solid content surface */}
-      <div className="absolute inset-4 md:inset-8 lg:inset-12 bg-card border border-border overflow-hidden flex flex-col animate-scale-in">
+      <div className="absolute inset-4 md:inset-6 lg:inset-10 bg-card border border-border overflow-hidden flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between px-8 py-6 border-b border-border shrink-0">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Compare Providers</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h2 className="text-base font-medium text-foreground">Compare Providers</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Comparing {providers.length} provider{providers.length !== 1 ? 's' : ''}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </header>
 
         {/* Comparison Grid */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[800px]">
-            <thead className="sticky top-0 bg-table-header z-10">
+          <table className="w-full min-w-[700px]">
+            <thead className="sticky top-0 bg-muted/30 z-10">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground border-b border-border w-48">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wide border-b border-border w-40">
                   Field
                 </th>
                 {providers.map(provider => (
-                  <th key={provider.id} className="px-6 py-4 text-left border-b border-border">
+                  <th key={provider.id} className="px-4 py-3 text-left border-b border-border">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-foreground">{provider.name}</span>
-                      <span className="text-xs text-muted-foreground font-normal mt-0.5">{provider.category}</span>
+                      <span className="text-sm font-medium text-foreground">{provider.name}</span>
+                      <span className="text-[11px] text-muted-foreground font-normal">{provider.category}</span>
                     </div>
                   </th>
                 ))}
@@ -159,12 +159,12 @@ export function CompareOverlay({ providers, onClose }: CompareOverlayProps) {
             </thead>
             <tbody>
               {compareFields.map((field, idx) => (
-                <tr key={field.key} className={idx % 2 === 0 ? 'bg-muted/20' : ''}>
-                  <td className="px-6 py-4 text-sm font-medium text-muted-foreground border-b border-border">
+                <tr key={field.key} className={idx % 2 === 0 ? 'bg-muted/10' : ''}>
+                  <td className="px-4 py-3 text-xs font-medium text-muted-foreground border-b border-border/50">
                     {field.label}
                   </td>
                   {providers.map(provider => (
-                    <td key={provider.id} className="px-6 py-4 border-b border-border">
+                    <td key={provider.id} className="px-4 py-3 border-b border-border/50 text-sm">
                       {renderCellValue(provider, field.key)}
                     </td>
                   ))}
@@ -175,11 +175,11 @@ export function CompareOverlay({ providers, onClose }: CompareOverlayProps) {
         </div>
 
         {/* Footer actions */}
-        <footer className="flex items-center justify-between px-8 py-4 border-t border-border shrink-0">
-          <p className="text-sm text-muted-foreground">Select a provider to proceed</p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose}>Close</Button>
-            <Button>Request Intro for Selected</Button>
+        <footer className="flex items-center justify-between px-6 py-3 border-t border-border shrink-0 bg-muted/20">
+          <p className="text-xs text-muted-foreground">Select a provider to proceed</p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+            <Button size="sm">Request Intro</Button>
           </div>
         </footer>
       </div>
