@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FileText, Send, Target, ListChecks, Play, ArrowRight, Activity, Search, Calendar, ExternalLink, CheckCircle, Clock } from 'lucide-react';
+import { TableSkeleton, PipelineStripSkeleton, ActivityListSkeleton } from '@/components/ui/Skeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -233,7 +234,10 @@ export default function Dashboard() {
             </div>
 
             {loading ? (
-              <div className="border border-border p-12 text-center text-muted-foreground text-[12px]">Loading...</div>
+              <>
+                <PipelineStripSkeleton />
+                <TableSkeleton rows={5} columns={5} />
+              </>
             ) : filteredRequests.length === 0 ? (
               <div className="border border-border">
                 <EmptyState 

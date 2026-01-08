@@ -8,7 +8,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Loader2, FileText, X } from 'lucide-react';
+import { Plus, Search, FileText, X } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/Skeletons';
 import type { Request, RequestStatus, TimelineUrgency, SensitivityLevel } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
 import { mockRequests } from '@/data/mockData';
@@ -92,6 +93,8 @@ export default function RequestsList() {
       <PageHeader 
         title="Requests" 
         description={`${filteredRequests.length} request${filteredRequests.length !== 1 ? 's' : ''}`}
+        backTo="/dashboard"
+        backLabel="Dashboard"
         actions={
           <Button size="sm" onClick={() => navigate('/requests/new')}>
             <Plus className="h-4 w-4 mr-1.5" />
@@ -159,9 +162,7 @@ export default function RequestsList() {
       {/* Table */}
       <div className="page-content p-0">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <TableSkeleton rows={6} columns={6} />
         ) : filteredRequests.length === 0 ? (
           <EmptyState
             icon={FileText}

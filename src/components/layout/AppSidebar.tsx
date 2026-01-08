@@ -101,7 +101,7 @@ export function AppSidebar() {
         asChild
         isActive={isActive(item.url)}
         tooltip={item.title}
-        className="h-9"
+        className="h-9 transition-all duration-150 hover:translate-x-0.5"
       >
         <NavLink to={item.url} className="text-[12px]">
           <item.icon className="h-4 w-4" />
