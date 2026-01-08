@@ -14,27 +14,30 @@ interface KPICardProps {
 
 export function KPICard({ label, value, icon: Icon, trend, className }: KPICardProps) {
   return (
-    <div className={cn("bg-card border border-border p-5", className)}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">{value}</p>
-          <p className="text-xs text-muted-foreground mt-1.5 uppercase tracking-wider">{label}</p>
+    <div className={cn(
+      "bg-card border border-border p-4",
+      className
+    )}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+          <p className="text-xl font-semibold text-foreground tabular-nums tracking-tight mt-1">{value}</p>
         </div>
         {Icon && (
-          <div className="h-8 w-8 bg-muted flex items-center justify-center">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+          <div className="h-7 w-7 bg-muted/50 flex items-center justify-center shrink-0">
+            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
         )}
       </div>
       {trend && (
-        <div className="mt-3 flex items-center gap-1.5">
+        <div className="mt-2 flex items-center gap-1.5">
           <span className={cn(
-            "text-xs font-medium",
-            trend.isPositive ? "text-success" : "text-destructive"
+            "text-[11px] font-medium tabular-nums",
+            trend.isPositive ? "text-emerald-500" : "text-red-400"
           )}>
             {trend.isPositive ? '+' : ''}{trend.value}%
           </span>
-          <span className="text-xs text-muted-foreground">vs last month</span>
+          <span className="text-[11px] text-muted-foreground">vs last month</span>
         </div>
       )}
     </div>
