@@ -327,8 +327,7 @@ export default function RequestDetail() {
     <div className="page-container">
       <PageHeader
         title={request.title}
-        backTo="/requests"
-        backLabel="Requests"
+        showBack
       />
 
       {/* Status bar */}
