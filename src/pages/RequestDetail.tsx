@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Loader2, Send, Upload, FileText, MessageSquare, ListChecks, Activity, Eye,
   Scale, Vault, Package, ClipboardList, ChevronRight, Plus, X, CheckCircle, AlertTriangle,
-  Shield, Users, DollarSign, FileCheck, BookOpen, Lock
+  Shield, Users, DollarSign, FileCheck, BookOpen, Lock, Download
 } from 'lucide-react';
 import type { Request, ShortlistEntry, FileRecord, ActivityEvent, Profile, FileCategory } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
@@ -189,18 +189,19 @@ export default function RequestDetail() {
     
     setUploading(true);
     try {
-      const filePath = `${id}/${Date.now()}-${file.name}`;
+      // Sanitize filename to prevent path traversal attacks
+      const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `${id}/${Date.now()}-${sanitizedFilename}`;
       const { error: uploadError } = await supabase.storage.from('request-files').upload(filePath, file);
       
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('request-files').getPublicUrl(filePath);
-
+      // Store the file path, not a public URL - we'll generate signed URLs on demand
       await supabase.from('files').insert({
         request_id: id,
         uploader_user_id: user.id,
         filename: file.name,
-        storage_url: urlData.publicUrl,
+        storage_url: filePath, // Store path, not public URL
         category: fileCategory,
       });
 
@@ -213,6 +214,22 @@ export default function RequestDetail() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Generate a signed URL for secure file download
+  const handleFileDownload = async (file: FileRecord) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('request-files')
+        .createSignedUrl(file.storage_url, 3600); // 1 hour expiry
+      
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      toast({ title: 'Download failed', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -714,7 +731,17 @@ export default function RequestDetail() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs font-medium text-foreground">{file.filename}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground px-2 py-0.5 bg-secondary rounded">{file.category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground px-2 py-0.5 bg-secondary rounded">{file.category}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleFileDownload(file)}
+                        >
+                          <Download className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
