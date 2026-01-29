@@ -388,6 +388,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shortlist_entries_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shortlist_entries_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
@@ -416,7 +423,43 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      providers_public: {
+        Row: {
+          capabilities: string[] | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          name: string | null
+          regions: string[] | null
+          typical_budget_band: Database["public"]["Enums"]["budget_band"] | null
+          website: string | null
+        }
+        Insert: {
+          capabilities?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          regions?: string[] | null
+          typical_budget_band?:
+            | Database["public"]["Enums"]["budget_band"]
+            | null
+          website?: string | null
+        }
+        Update: {
+          capabilities?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          regions?: string[] | null
+          typical_budget_band?:
+            | Database["public"]["Enums"]["budget_band"]
+            | null
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_workspace_role: {
