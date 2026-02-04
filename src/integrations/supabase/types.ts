@@ -59,6 +59,44 @@ export type Database = {
           },
         ]
       }
+      brief_versions: {
+        Row: {
+          brief_id: string
+          change_notes: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          snapshot: Json
+          version_number: number
+        }
+        Insert: {
+          brief_id: string
+          change_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot: Json
+          version_number: number
+        }
+        Update: {
+          brief_id?: string
+          change_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brief_versions_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
@@ -119,6 +157,74 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_briefs: {
+        Row: {
+          business_context: Json | null
+          constraints: Json | null
+          created_at: string
+          current_version: number
+          id: string
+          intake_responses: Json | null
+          locked_at: string | null
+          locked_by: string | null
+          owner_id: string | null
+          project_type_id: string
+          requirements: Json | null
+          risk_factors: Json | null
+          status: string
+          success_criteria: Json | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          business_context?: Json | null
+          constraints?: Json | null
+          created_at?: string
+          current_version?: number
+          id?: string
+          intake_responses?: Json | null
+          locked_at?: string | null
+          locked_by?: string | null
+          owner_id?: string | null
+          project_type_id: string
+          requirements?: Json | null
+          risk_factors?: Json | null
+          status?: string
+          success_criteria?: Json | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          business_context?: Json | null
+          constraints?: Json | null
+          created_at?: string
+          current_version?: number
+          id?: string
+          intake_responses?: Json | null
+          locked_at?: string | null
+          locked_by?: string | null
+          owner_id?: string | null
+          project_type_id?: string
+          requirements?: Json | null
+          risk_factors?: Json | null
+          status?: string
+          success_criteria?: Json | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_briefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
