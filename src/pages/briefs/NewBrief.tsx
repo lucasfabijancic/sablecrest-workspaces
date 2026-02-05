@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -79,7 +80,7 @@ export default function NewBrief() {
   });
 
   // Step 3 - Requirements (intake responses)
-  const [intakeResponses] = useState<Record<string, string | number | string[]>>({});
+  const [intakeResponses, setIntakeResponses] = useState<Record<string, string | number | string[]>>({});
 
   // Step 4 - Success Criteria
   const [successCriteria] = useState<SuccessCriterionDraft[]>([]);
@@ -96,6 +97,25 @@ export default function NewBrief() {
     () => aecProjectTypes.find((type) => type.id === selectedProjectTypeId),
     [selectedProjectTypeId]
   );
+  const intakeQuestions = selectedProjectType?.intakeQuestions ?? [];
+
+  const isQuestionAnswered = (question: (typeof intakeQuestions)[number], value: unknown) => {
+    switch (question.type) {
+      case 'multiselect':
+        return Array.isArray(value) && value.length > 0;
+      case 'number':
+        if (value === '' || value === null || value === undefined) return false;
+        if (typeof value === 'number') return !Number.isNaN(value);
+        if (typeof value === 'string') return value.trim().length > 0 && !Number.isNaN(Number(value));
+        return false;
+      case 'select':
+      case 'text':
+      case 'textarea':
+        return typeof value === 'string' && value.trim().length > 0;
+      default:
+        return Boolean(value);
+    }
+  };
 
   const isStepValid = () => {
     if (currentStep === 1) {
@@ -107,6 +127,12 @@ export default function NewBrief() {
         businessContext.currentState.trim().length > 0 &&
         businessContext.desiredOutcome.trim().length > 0
       );
+    }
+    if (currentStep === 3) {
+      return intakeQuestions.every((question) => {
+        if (!question.required) return true;
+        return isQuestionAnswered(question, intakeResponses[question.id]);
+      });
     }
     return true;
   };
@@ -152,6 +178,14 @@ export default function NewBrief() {
             ? ''
             : 'Define the desired outcome.',
         });
+      } else if (currentStep === 3) {
+        const nextErrors: ValidationErrors = {};
+        intakeQuestions.forEach((question) => {
+          if (question.required && !isQuestionAnswered(question, intakeResponses[question.id])) {
+            nextErrors[question.id] = 'This field is required.';
+          }
+        });
+        setValidationErrors(nextErrors);
       }
       return;
     }
@@ -335,6 +369,23 @@ export default function NewBrief() {
       return next;
     });
   };
+
+  const updateIntakeResponse = (
+    question: (typeof intakeQuestions)[number],
+    value: string | number | string[]
+  ) => {
+    setIntakeResponses((prev) => ({ ...prev, [question.id]: value }));
+    if (question.required && isQuestionAnswered(question, value)) {
+      setValidationErrors((prevErrors) => {
+        if (!prevErrors[question.id]) return prevErrors;
+        const nextErrors = { ...prevErrors };
+        delete nextErrors[question.id];
+        return nextErrors;
+      });
+    }
+  };
+
+  const projectTypeLabel = selectedProjectType?.name ?? 'implementation';
 
   if (!currentWorkspace) {
     return (
@@ -616,10 +667,122 @@ export default function NewBrief() {
 
             {currentStep === 3 && (
               <div className="space-y-4 animate-fade-in">
-                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-                  <p className="text-foreground font-medium mb-2">Coming soon</p>
-                  Project-type intake questions will appear here.
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">
+                    Tell us about your {projectTypeLabel} project
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    These questions help us tailor the provider match to your requirements.
+                  </p>
                 </div>
+
+                {intakeQuestions.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
+                    No intake questions available for this project type yet.
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {intakeQuestions.map((question) => {
+                      const value = intakeResponses[question.id];
+                      const hasError = Boolean(validationErrors[question.id]);
+                      return (
+                        <div key={question.id} className="space-y-2">
+                          <Label htmlFor={question.id} className="text-sm">
+                            {question.question}
+                            {question.required && <span className="text-destructive"> *</span>}
+                          </Label>
+
+                          {question.type === 'text' && (
+                            <Input
+                              id={question.id}
+                              value={typeof value === 'string' ? value : ''}
+                              onChange={(event) => updateIntakeResponse(question, event.target.value)}
+                              placeholder="Enter your response..."
+                            />
+                          )}
+
+                          {question.type === 'number' && (
+                            <Input
+                              id={question.id}
+                              type="number"
+                              value={value === undefined || value === null ? '' : String(value)}
+                              onChange={(event) => {
+                                const nextValue =
+                                  event.target.value === '' ? '' : Number(event.target.value);
+                                updateIntakeResponse(question, nextValue);
+                              }}
+                              placeholder="Enter a number..."
+                            />
+                          )}
+
+                          {question.type === 'textarea' && (
+                            <Textarea
+                              id={question.id}
+                              value={typeof value === 'string' ? value : ''}
+                              onChange={(event) => updateIntakeResponse(question, event.target.value)}
+                              placeholder="Add details..."
+                              className="min-h-[110px]"
+                            />
+                          )}
+
+                          {question.type === 'select' && (
+                            <Select
+                              value={typeof value === 'string' ? value : ''}
+                              onValueChange={(nextValue) => updateIntakeResponse(question, nextValue)}
+                            >
+                              <SelectTrigger id={question.id}>
+                                <SelectValue placeholder="Select an option..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(question.options || []).map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          {question.type === 'multiselect' && (
+                            <div className="space-y-2">
+                              {(question.options || []).map((option) => {
+                                const selectedValues = Array.isArray(value) ? value : [];
+                                const checked = selectedValues.includes(option);
+                                return (
+                                  <label
+                                    key={option}
+                                    className="flex items-start gap-2 text-sm text-foreground"
+                                  >
+                                    <Checkbox
+                                      id={`${question.id}-${option}`}
+                                      checked={checked}
+                                      onCheckedChange={(checkedState) => {
+                                        const isChecked = checkedState === true;
+                                        const nextValues = isChecked
+                                          ? [...selectedValues, option]
+                                          : selectedValues.filter((item) => item !== option);
+                                        updateIntakeResponse(question, nextValues);
+                                      }}
+                                      className="mt-0.5"
+                                    />
+                                    <span>{option}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {question.helpText && (
+                            <p className="text-xs text-muted-foreground">{question.helpText}</p>
+                          )}
+                          {hasError && (
+                            <p className="text-xs text-destructive">{validationErrors[question.id]}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
