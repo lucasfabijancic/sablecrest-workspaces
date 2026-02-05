@@ -1,10 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Save } from 'lucide-react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const steps = [
@@ -50,15 +56,19 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 export default function NewBrief() {
-  const { currentWorkspace } = useAuth();
+  const { currentWorkspace, user, isUiShellMode } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [briefId, setBriefId] = useState<string | null>(null);
 
   // Step 1 - Project Type
   const [selectedProjectTypeId, setSelectedProjectTypeId] = useState('');
 
   // Step 2 - Context
-  const [businessContext] = useState<BusinessContextDraft>({
+  const [businessContext, setBusinessContext] = useState<BusinessContextDraft>({
     companyName: '',
     companySize: '',
     industry: '',
@@ -91,12 +101,58 @@ export default function NewBrief() {
     if (currentStep === 1) {
       return Boolean(selectedProjectTypeId);
     }
+    if (currentStep === 2) {
+      return (
+        businessContext.companyName.trim().length > 0 &&
+        businessContext.currentState.trim().length > 0 &&
+        businessContext.desiredOutcome.trim().length > 0
+      );
+    }
     return true;
   };
 
+  const buildBriefTitle = () => {
+    const projectLabel = selectedProjectType?.name || 'Implementation Brief';
+    const companyLabel = businessContext.companyName.trim();
+    if (companyLabel) {
+      return `${companyLabel} — ${projectLabel}`;
+    }
+    return projectLabel;
+  };
+
+  const buildBriefPayload = (status: 'Draft' | 'Locked') => ({
+    workspace_id: currentWorkspace?.id ?? '',
+    title: buildBriefTitle(),
+    project_type_id: selectedProjectTypeId,
+    status,
+    business_context: businessContext,
+    requirements: [],
+    success_criteria: successCriteria,
+    constraints,
+    risk_factors: [],
+    intake_responses: intakeResponses,
+    locked_at: status === 'Locked' ? new Date().toISOString() : null,
+    locked_by: status === 'Locked' ? user?.id ?? null : null,
+    owner_id: user?.id ?? null,
+  });
+
   const handleContinue = () => {
     if (!isStepValid()) {
-      setValidationErrors({ projectType: 'Select a project type to continue.' });
+      if (currentStep === 1) {
+        setValidationErrors({ projectType: 'Select a project type to continue.' });
+      } else if (currentStep === 2) {
+        setValidationErrors({
+          companyName: businessContext.companyName.trim()
+            ? ''
+            : 'Company name is required.',
+          currentState: businessContext.currentState.trim()
+            ? ''
+            : 'Describe the current state.',
+          desiredOutcome: businessContext.desiredOutcome.trim()
+            ? ''
+            : 'Define the desired outcome.',
+        });
+      }
       return;
     }
     setValidationErrors({});
@@ -107,12 +163,148 @@ export default function NewBrief() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleSaveDraft = () => {
-    setValidationErrors((prev) => ({ ...prev }));
+  const handleSaveDraft = async () => {
+    if (isUiShellMode) {
+      toast({
+        title: 'Not available in UI shell mode',
+        description: 'Connect a workspace to save drafts.',
+      });
+      return;
+    }
+
+    if (!user || !currentWorkspace) {
+      toast({
+        title: 'Missing workspace',
+        description: 'Please select a workspace first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!selectedProjectTypeId) {
+      setValidationErrors({ projectType: 'Select a project type to save a draft.' });
+      setCurrentStep(1);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = buildBriefPayload('Draft');
+      const { data, error } = briefId
+        ? await supabase
+            .from('implementation_briefs')
+            .update(payload)
+            .eq('id', briefId)
+            .select('id')
+            .single()
+        : await supabase
+            .from('implementation_briefs')
+            .insert(payload)
+            .select('id')
+            .single();
+
+      if (error) throw error;
+
+      if (data?.id) {
+        setBriefId(data.id);
+      }
+
+      toast({
+        title: 'Draft saved',
+        description: 'Your implementation brief draft has been saved.',
+      });
+      navigate('/briefs');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save draft.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLockBrief = () => {
-    setValidationErrors((prev) => ({ ...prev }));
+  const handleLockBrief = async () => {
+    if (isUiShellMode) {
+      toast({
+        title: 'Not available in UI shell mode',
+        description: 'Connect a workspace to lock briefs.',
+      });
+      return;
+    }
+
+    if (!user || !currentWorkspace) {
+      toast({
+        title: 'Missing workspace',
+        description: 'Please select a workspace first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!selectedProjectTypeId) {
+      setValidationErrors({ projectType: 'Select a project type to continue.' });
+      setCurrentStep(1);
+      return;
+    }
+
+    if (
+      !businessContext.companyName.trim() ||
+      !businessContext.currentState.trim() ||
+      !businessContext.desiredOutcome.trim()
+    ) {
+      setValidationErrors({
+        companyName: businessContext.companyName.trim()
+          ? ''
+          : 'Company name is required.',
+        currentState: businessContext.currentState.trim()
+          ? ''
+          : 'Describe the current state.',
+        desiredOutcome: businessContext.desiredOutcome.trim()
+          ? ''
+          : 'Define the desired outcome.',
+      });
+      setCurrentStep(2);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = buildBriefPayload('Locked');
+      const { data, error } = briefId
+        ? await supabase
+            .from('implementation_briefs')
+            .update(payload)
+            .eq('id', briefId)
+            .select('id')
+            .single()
+        : await supabase
+            .from('implementation_briefs')
+            .insert(payload)
+            .select('id')
+            .single();
+
+      if (error) throw error;
+
+      if (data?.id) {
+        setBriefId(data.id);
+      }
+
+      toast({
+        title: 'Brief locked',
+        description: 'Your implementation brief has been locked for matching.',
+      });
+      navigate('/briefs');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to lock brief.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSelectProjectType = (projectTypeId: string) => {
@@ -121,6 +313,26 @@ export default function NewBrief() {
       if (!prev.projectType) return prev;
       const { projectType, ...rest } = prev;
       return rest;
+    });
+  };
+
+  const updateBusinessContext = (updates: Partial<BusinessContextDraft>) => {
+    setBusinessContext((prev) => {
+      const next = { ...prev, ...updates };
+      setValidationErrors((prevErrors) => {
+        const nextErrors = { ...prevErrors };
+        if (updates.companyName !== undefined && next.companyName.trim()) {
+          delete nextErrors.companyName;
+        }
+        if (updates.currentState !== undefined && next.currentState.trim()) {
+          delete nextErrors.currentState;
+        }
+        if (updates.desiredOutcome !== undefined && next.desiredOutcome.trim()) {
+          delete nextErrors.desiredOutcome;
+        }
+        return nextErrors;
+      });
+      return next;
     });
   };
 
@@ -268,9 +480,136 @@ export default function NewBrief() {
 
             {currentStep === 2 && (
               <div className="space-y-4 animate-fade-in">
-                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-                  <p className="text-foreground font-medium mb-2">Coming soon</p>
-                  Business context questions will live here.
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Business context</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Capture the high-level context so we can tailor providers and scope.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="companyName">Company name *</Label>
+                    <Input
+                      id="companyName"
+                      value={businessContext.companyName}
+                      onChange={(event) => updateBusinessContext({ companyName: event.target.value })}
+                      placeholder="e.g., North Ridge Constructors"
+                    />
+                    {validationErrors.companyName && (
+                      <p className="text-xs text-destructive">{validationErrors.companyName}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Company size</Label>
+                    <Select
+                      value={businessContext.companySize}
+                      onValueChange={(value) => updateBusinessContext({ companySize: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select size..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['1-10', '11-50', '51-200', '201-500', '500+'].map((size) => (
+                          <SelectItem key={size} value={size}>
+                            {size} employees
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Industry segment</Label>
+                    <Select
+                      value={businessContext.industry}
+                      onValueChange={(value) => updateBusinessContext({ industry: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select segment..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          'General Contractor',
+                          'Specialty Contractor',
+                          'Civil/Heavy',
+                          'Residential Builder',
+                          'Commercial Developer',
+                          'Engineering Firm',
+                          'Architecture Firm',
+                          'Owner/Operator',
+                        ].map((segment) => (
+                          <SelectItem key={segment} value={segment}>
+                            {segment}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Decision timeline</Label>
+                    <Select
+                      value={businessContext.decisionTimeline}
+                      onValueChange={(value) => updateBusinessContext({ decisionTimeline: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timeline..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          'Ready to decide now',
+                          'Within 2 weeks',
+                          'Within 1 month',
+                          'Within 3 months',
+                          'Just exploring',
+                        ].map((timeline) => (
+                          <SelectItem key={timeline} value={timeline}>
+                            {timeline}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="currentState">Current state *</Label>
+                  <Textarea
+                    id="currentState"
+                    value={businessContext.currentState}
+                    onChange={(event) => updateBusinessContext({ currentState: event.target.value })}
+                    placeholder="Describe your current systems and processes..."
+                    className="min-h-[110px]"
+                  />
+                  {validationErrors.currentState && (
+                    <p className="text-xs text-destructive">{validationErrors.currentState}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="desiredOutcome">Desired outcome *</Label>
+                  <Textarea
+                    id="desiredOutcome"
+                    value={businessContext.desiredOutcome}
+                    onChange={(event) => updateBusinessContext({ desiredOutcome: event.target.value })}
+                    placeholder="What does success look like?"
+                    className="min-h-[110px]"
+                  />
+                  {validationErrors.desiredOutcome && (
+                    <p className="text-xs text-destructive">{validationErrors.desiredOutcome}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="keyStakeholders">Key stakeholders</Label>
+                  <Input
+                    id="keyStakeholders"
+                    value={businessContext.keyStakeholders}
+                    onChange={(event) => updateBusinessContext({ keyStakeholders: event.target.value })}
+                    placeholder="Who will be involved in this project?"
+                  />
                 </div>
               </div>
             )}
@@ -324,19 +663,19 @@ export default function NewBrief() {
 
               <div className="flex items-center gap-3">
                 {currentStep >= 2 && (
-                  <Button variant="outline" onClick={handleSaveDraft}>
+                  <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
                     <Save className="h-4 w-4 mr-2" />
                     Save Draft
                   </Button>
                 )}
 
                 {currentStep < steps.length ? (
-                  <Button onClick={handleContinue} disabled={!isStepValid()}>
+                  <Button onClick={handleContinue} disabled={loading || !isStepValid()}>
                     Continue
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
-                  <Button onClick={handleLockBrief} disabled={!isStepValid()}>
+                  <Button onClick={handleLockBrief} disabled={loading}>
                     Lock Brief
                   </Button>
                 )}
