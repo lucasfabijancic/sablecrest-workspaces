@@ -157,9 +157,9 @@ export default function Dashboard() {
               <Calendar className="h-3 w-3 mr-1.5" />
               Schedule Call
             </Button>
-            <Button size="sm" className="h-8 text-[11px]" onClick={() => navigate('/requests/new')}>
+            <Button size="sm" className="h-8 text-[11px]" onClick={() => navigate('/briefs/new')}>
               <FileText className="h-3 w-3 mr-1.5" />
-              New Request
+              New Brief
             </Button>
           </>
         }
@@ -204,7 +204,7 @@ export default function Dashboard() {
           <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">My Queue</h2>
-              <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => navigate('/requests')}>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => navigate('/briefs')}>
                 View all <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
@@ -242,9 +242,9 @@ export default function Dashboard() {
               <div className="border border-border">
                 <EmptyState 
                   icon={FileText} 
-                  title="Start with a minimal request" 
+                  title="Start with a minimal brief" 
                   description="We'll scope it on a call."
-                  action={{ label: 'New Request', onClick: () => navigate('/requests/new') }}
+                  action={{ label: 'New Brief', onClick: () => navigate('/briefs/new') }}
                   secondaryAction={{ label: 'Schedule Call', onClick: () => setScopingDialogOpen(true), variant: 'outline' }}
                 />
               </div>

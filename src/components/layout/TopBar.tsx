@@ -23,6 +23,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/requests': 'Requests',
+  '/briefs': 'Briefs',
   '/providers': 'Providers',
   '/scorecards': 'Scorecards',
   '/shortlists': 'Shortlists',
@@ -56,7 +57,8 @@ export function TopBar() {
   // Get current page title
   const currentPath = location.pathname;
   const pageTitle = routeTitles[currentPath] || 
-    (currentPath.startsWith('/requests/') ? 'Request' : 
+    (currentPath.startsWith('/briefs/') ? 'Brief' :
+    currentPath.startsWith('/requests/') ? 'Request' : 
     currentPath.startsWith('/shortlists/') ? 'Shortlist' : 'Sablecrest');
 
   return (
@@ -85,14 +87,14 @@ export function TopBar() {
             </kbd>
           </Button>
 
-          {/* New Request button */}
+          {/* New Brief button */}
           <Button
             size="sm"
             className="h-8 text-[11px]"
-            onClick={() => navigate('/requests/new')}
+            onClick={() => navigate('/briefs/new')}
           >
             <Plus className="h-3 w-3 mr-1" />
-            New Request
+            New Brief
           </Button>
 
           {/* Theme toggle */}
@@ -151,7 +153,7 @@ export function TopBar() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search requests, providers..."
+                placeholder="Search briefs, providers..."
                 className="border-0 focus-visible:ring-0 text-[12px] h-10"
                 autoFocus
               />
@@ -163,21 +165,21 @@ export function TopBar() {
               className="w-full flex items-center gap-2 px-2 py-2 text-[12px] text-foreground hover:bg-muted transition-colors"
               onClick={() => {
                 setCommandOpen(false);
-                navigate('/requests/new');
+                navigate('/briefs/new');
               }}
             >
               <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-              Create new request
+              Create new brief
             </button>
             <button
               className="w-full flex items-center gap-2 px-2 py-2 text-[12px] text-foreground hover:bg-muted transition-colors"
               onClick={() => {
                 setCommandOpen(false);
-                navigate('/requests');
+                navigate('/briefs');
               }}
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              View all requests
+              View all briefs
             </button>
             <button
               className="w-full flex items-center gap-2 px-2 py-2 text-[12px] text-foreground hover:bg-muted transition-colors"

@@ -43,14 +43,14 @@ type DevRole = 'buyer' | 'internal' | 'provider';
 // Navigation structure organized by role
 const buyerNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Requests', url: '/requests', icon: FileText },
+  { title: 'Briefs', url: '/briefs', icon: FileText },
   { title: 'Shortlists', url: '/shortlists', icon: Layers },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
 ];
 
 const internalNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Requests', url: '/requests', icon: FileText },
+  { title: 'Briefs', url: '/briefs', icon: FileText },
   { title: 'Providers', url: '/providers', icon: Database },
   { title: 'Scorecards', url: '/scorecards', icon: Scale },
   { title: 'Shortlists', url: '/shortlists', icon: Layers },

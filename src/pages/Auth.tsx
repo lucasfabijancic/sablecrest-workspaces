@@ -77,7 +77,7 @@ export default function Auth() {
           return;
         }
         
-        navigate('/requests');
+        navigate('/briefs');
       } else {
         const redirectUrl = `${window.location.origin}/`;
         

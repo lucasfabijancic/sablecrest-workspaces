@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import RequestsList from "./pages/RequestsList";
 import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
+import BriefsList from "./pages/BriefsList";
+import NewBrief from "./pages/briefs/NewBrief";
 import ProviderRegistry from "./pages/ProviderRegistry";
 import Scorecards from "./pages/Scorecards";
 import ShortlistCompare from "./pages/ShortlistCompare";
@@ -49,6 +51,8 @@ const App = () => (
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="requests/new" element={<NewRequest />} />
                 <Route path="requests/:id" element={<RequestDetail />} />
+                <Route path="briefs" element={<BriefsList />} />
+                <Route path="briefs/new" element={<NewBrief />} />
                 <Route path="providers" element={<ProviderRegistry />} />
                 <Route path="scorecards" element={<Scorecards />} />
                 <Route path="shortlists" element={<ShortlistCompare />} />
