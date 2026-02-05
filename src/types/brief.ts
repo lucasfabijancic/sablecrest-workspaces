@@ -37,6 +37,7 @@ export interface SuccessCriterion {
   target: string;
   measurementMethod: string;
   timeframe: string;
+  weight: number; // 1-10, importance for matching. Default 5.
 }
 
 export interface BriefConstraints {

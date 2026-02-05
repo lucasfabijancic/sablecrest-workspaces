@@ -21,7 +21,7 @@ export default function BriefsList() {
     <div className="page-container">
       <PageHeader
         title="Briefs"
-        description="Implementation briefs in your workspace"
+        description="Implementation briefs in your workspace. Drafts auto-save while editing."
         showBack
         actions={
           <Button size="sm" onClick={() => navigate('/briefs/new')}>
