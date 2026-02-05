@@ -12,7 +12,7 @@ import { BRIEF_STEPS, INITIAL_FORM_DATA, type BriefFormData } from '@/types/brie
 import { ProjectTypeStep } from '@/components/briefs/steps/ProjectTypeStep';
 import { BusinessContextStep } from '@/components/briefs/steps/BusinessContextStep';
 import { RequirementsStep } from '@/components/briefs/steps/RequirementsStep';
-import { SuccessCriteriaStep } from '@/components/briefs/intake';
+import { SuccessCriteriaStep, ConstraintsStep } from '@/components/briefs/intake';
 
 type ValidationErrors = Record<string, string>;
 type IntakeQuestion = (typeof aecProjectTypes)[number]['intakeQuestions'][number];
@@ -421,12 +421,12 @@ export default function NewBrief() {
             )}
 
             {currentStep === 5 && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-                  <p className="text-foreground font-medium mb-2">Coming soon</p>
-                  Budget, timeline, sensitivity, and technical constraints will appear here.
-                </div>
-              </div>
+              <ConstraintsStep
+                formData={formData}
+                updateFormData={updateFormData}
+                isValid={currentStepValid}
+                setIsValid={setCurrentStepValidity}
+              />
             )}
 
             {currentStep === 6 && (
