@@ -3,3 +3,4 @@ export { BusinessContextStep } from '@/components/briefs/steps/BusinessContextSt
 export { RequirementsStep } from '@/components/briefs/steps/RequirementsStep';
 export { default as SuccessCriteriaStep } from './SuccessCriteriaStep';
 export { default as ConstraintsStep } from './ConstraintsStep';
+export { default as ReviewStep } from './ReviewStep';

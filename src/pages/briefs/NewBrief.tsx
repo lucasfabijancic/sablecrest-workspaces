@@ -12,7 +12,7 @@ import { BRIEF_STEPS, INITIAL_FORM_DATA, type BriefFormData } from '@/types/brie
 import { ProjectTypeStep } from '@/components/briefs/steps/ProjectTypeStep';
 import { BusinessContextStep } from '@/components/briefs/steps/BusinessContextStep';
 import { RequirementsStep } from '@/components/briefs/steps/RequirementsStep';
-import { SuccessCriteriaStep, ConstraintsStep } from '@/components/briefs/intake';
+import { SuccessCriteriaStep, ConstraintsStep, ReviewStep } from '@/components/briefs/intake';
 
 type ValidationErrors = Record<string, string>;
 type IntakeQuestion = (typeof aecProjectTypes)[number]['intakeQuestions'][number];
@@ -42,6 +42,7 @@ export default function NewBrief() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [briefId, setBriefId] = useState<string | null>(null);
   const [formData, setFormData] = useState<BriefFormData>(INITIAL_FORM_DATA);
@@ -128,6 +129,10 @@ export default function NewBrief() {
     [buildBriefTitle, currentWorkspace?.id, formData, user?.id]
   );
 
+  const getSubmissionTitle = useCallback(() => {
+    return selectedProjectType?.name || 'Untitled Brief';
+  }, [selectedProjectType?.name]);
+
   const upsertBrief = useCallback(
     async (status: 'Draft' | 'Locked'): Promise<string | null> => {
       if (!currentWorkspace || !user || !formData.projectTypeId) {
@@ -188,6 +193,195 @@ export default function NewBrief() {
     onSave: saveDraftSilently,
   });
 
+  const saveDraft = useCallback(async (): Promise<void> => {
+    if (isUiShellMode) {
+      toast({
+        title: 'Not available in UI shell mode',
+        description: 'Connect a workspace to save drafts.',
+      });
+      return;
+    }
+
+    if (!user || !currentWorkspace) {
+      toast({
+        title: 'Missing workspace',
+        description: 'Please select a workspace first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.projectTypeId) {
+      setValidationErrors({ projectType: 'Select a project type to save a draft.' });
+      setCurrentStep(1);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        workspace_id: currentWorkspace.id,
+        title: getSubmissionTitle(),
+        project_type_id: formData.projectTypeId,
+        status: 'Draft',
+        business_context: formData.businessContext,
+        requirements: [],
+        success_criteria: formData.successCriteria,
+        constraints: formData.constraints,
+        intake_responses: formData.intakeResponses,
+        risk_factors: formData.riskFactors,
+        owner_id: user.id,
+      };
+
+      const { data, error } = briefId
+        ? await supabase
+            .from('implementation_briefs')
+            .update(payload)
+            .eq('id', briefId)
+            .select('id')
+            .single()
+        : await supabase
+            .from('implementation_briefs')
+            .insert(payload)
+            .select('id')
+            .single();
+
+      if (error) throw error;
+
+      if (data?.id) {
+        setBriefId(data.id);
+      }
+
+      markSignatureAsSaved(autosaveSignature);
+      toast({
+        title: 'Draft saved',
+        description: 'Your implementation brief draft has been saved.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save draft.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    autosaveSignature,
+    briefId,
+    currentWorkspace,
+    formData.businessContext,
+    formData.constraints,
+    formData.intakeResponses,
+    formData.projectTypeId,
+    formData.riskFactors,
+    formData.successCriteria,
+    getSubmissionTitle,
+    isUiShellMode,
+    markSignatureAsSaved,
+    toast,
+    user,
+  ]);
+
+  const submitBrief = useCallback(async (): Promise<void> => {
+    if (isUiShellMode) {
+      toast({
+        title: 'Not available in UI shell mode',
+        description: 'Connect a workspace to submit briefs.',
+      });
+      return;
+    }
+
+    if (!user || !currentWorkspace) {
+      toast({
+        title: 'Missing workspace',
+        description: 'Please select a workspace first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.projectTypeId) {
+      setValidationErrors({ projectType: 'Select a project type before submitting.' });
+      setCurrentStep(1);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        workspace_id: currentWorkspace.id,
+        title: getSubmissionTitle(),
+        project_type_id: formData.projectTypeId,
+        status: 'In Review',
+        business_context: formData.businessContext,
+        requirements: [],
+        success_criteria: formData.successCriteria,
+        constraints: formData.constraints,
+        intake_responses: formData.intakeResponses,
+        risk_factors: formData.riskFactors,
+        owner_id: user.id,
+      };
+
+      const { data, error } = briefId
+        ? await supabase
+            .from('implementation_briefs')
+            .update(payload)
+            .eq('id', briefId)
+            .select('id')
+            .single()
+        : await supabase
+            .from('implementation_briefs')
+            .insert(payload)
+            .select('id')
+            .single();
+
+      if (error) throw error;
+
+      const nextBriefId = data?.id ?? briefId;
+      if (nextBriefId) {
+        setBriefId(nextBriefId);
+      }
+
+      markSignatureAsSaved(autosaveSignature);
+      toast({
+        title: 'Brief submitted for review',
+      });
+
+      if (nextBriefId) {
+        navigate(`/briefs/${nextBriefId}`);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to submit brief.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    autosaveSignature,
+    briefId,
+    currentWorkspace,
+    formData.businessContext,
+    formData.constraints,
+    formData.intakeResponses,
+    formData.projectTypeId,
+    formData.riskFactors,
+    formData.successCriteria,
+    getSubmissionTitle,
+    isUiShellMode,
+    markSignatureAsSaved,
+    navigate,
+    toast,
+    user,
+  ]);
+
+  const jumpToStep = useCallback((step: number) => {
+    setCurrentStep(step);
+  }, []);
+
   const handleContinue = () => {
     if (!isStepValid()) {
       if (currentStep === 1) {
@@ -216,112 +410,6 @@ export default function NewBrief() {
 
   const handleBack = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleSaveDraft = async () => {
-    if (isUiShellMode) {
-      toast({
-        title: 'Not available in UI shell mode',
-        description: 'Connect a workspace to save drafts.',
-      });
-      return;
-    }
-
-    if (!user || !currentWorkspace) {
-      toast({
-        title: 'Missing workspace',
-        description: 'Please select a workspace first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.projectTypeId) {
-      setValidationErrors({ projectType: 'Select a project type to save a draft.' });
-      setCurrentStep(1);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const id = await upsertBrief('Draft');
-      if (!id) throw new Error('Failed to save draft.');
-
-      markSignatureAsSaved(autosaveSignature);
-      toast({
-        title: 'Draft saved',
-        description: 'Your implementation brief draft has been saved.',
-      });
-      navigate('/briefs');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save draft.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLockBrief = async () => {
-    if (isUiShellMode) {
-      toast({
-        title: 'Not available in UI shell mode',
-        description: 'Connect a workspace to lock briefs.',
-      });
-      return;
-    }
-
-    if (!user || !currentWorkspace) {
-      toast({
-        title: 'Missing workspace',
-        description: 'Please select a workspace first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.projectTypeId) {
-      setValidationErrors({ projectType: 'Select a project type to continue.' });
-      setCurrentStep(1);
-      return;
-    }
-
-    if (
-      !formData.businessContext.companyName.trim() ||
-      !formData.businessContext.currentState.trim() ||
-      !formData.businessContext.desiredOutcome.trim()
-    ) {
-      setValidationErrors({
-        companyName: formData.businessContext.companyName.trim() ? '' : 'Company name is required.',
-        currentState: formData.businessContext.currentState.trim() ? '' : 'Describe the current state.',
-        desiredOutcome: formData.businessContext.desiredOutcome.trim() ? '' : 'Define the desired outcome.',
-      });
-      setCurrentStep(2);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const id = await upsertBrief('Locked');
-      if (!id) throw new Error('Failed to lock brief.');
-
-      markSignatureAsSaved(autosaveSignature);
-      toast({
-        title: 'Brief locked',
-        description: 'Your implementation brief has been locked for matching.',
-      });
-      navigate('/briefs');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to lock brief.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (!currentWorkspace) {
@@ -430,12 +518,14 @@ export default function NewBrief() {
             )}
 
             {currentStep === 6 && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-                  <p className="text-foreground font-medium mb-2">Review</p>
-                  A full summary and lock step will appear here.
-                </div>
-              </div>
+              <ReviewStep
+                formData={formData}
+                briefId={briefId}
+                onSaveDraft={saveDraft}
+                onSubmitBrief={submitBrief}
+                isSubmitting={isSubmitting}
+                onJumpToStep={jumpToStep}
+              />
             )}
 
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
@@ -445,21 +535,17 @@ export default function NewBrief() {
               </Button>
 
               <div className="flex items-center gap-3">
-                {currentStep >= 2 && (
-                  <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
+                {currentStep >= 2 && currentStep < BRIEF_STEPS.length && (
+                  <Button variant="outline" onClick={saveDraft} disabled={loading || isSubmitting}>
                     <Save className="h-4 w-4 mr-2" />
                     Save Draft
                   </Button>
                 )}
 
-                {currentStep < BRIEF_STEPS.length ? (
-                  <Button onClick={handleContinue} disabled={loading || !currentStepValid}>
+                {currentStep < BRIEF_STEPS.length && (
+                  <Button onClick={handleContinue} disabled={loading || isSubmitting || !currentStepValid}>
                     Continue
                     <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                ) : (
-                  <Button onClick={handleLockBrief} disabled={loading}>
-                    Lock Brief
                   </Button>
                 )}
               </div>
