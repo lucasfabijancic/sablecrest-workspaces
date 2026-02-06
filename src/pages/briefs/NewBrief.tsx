@@ -433,8 +433,7 @@ export default function NewBrief() {
           <div key={step.id} className="flex items-center">
             <div
               className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-md',
-                currentStep === step.id && 'bg-primary/10',
+                'flex items-center gap-2',
                 currentStep > step.id && 'text-success'
               )}
             >
