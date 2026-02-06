@@ -20,6 +20,9 @@ const TIMELINE_OPTIONS: TimelineUrgency[] = [
   'Flexible',
 ];
 
+const OTHER_OPTION = 'Other';
+const OTHER_PREFIX = 'Other: ';
+
 const SENSITIVITY_OPTIONS: SensitivityLevel[] = [
   'Standard',
   'Confidential',
@@ -39,6 +42,9 @@ const AEC_SYSTEM_SUGGESTIONS = [
   'Foundation Software',
   'Trimble',
   'Autodesk',
+  'Microsoft Dynamics',
+  'Spectrum',
+  'Acumatica',
 ];
 
 const listToTextarea = (items?: string[]) => (items && items.length > 0 ? items.join('\n') : '');
@@ -48,6 +54,9 @@ const textareaToList = (value: string): string[] =>
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+
+const isOtherValue = (value: string) => value.startsWith(OTHER_PREFIX);
+const extractOtherText = (value: string) => (isOtherValue(value) ? value.slice(OTHER_PREFIX.length) : '');
 
 export default function ConstraintsStep({ formData, updateFormData, setIsValid }: BriefStepProps) {
   const [mustIntegrateInput, setMustIntegrateInput] = useState('');
@@ -62,11 +71,17 @@ export default function ConstraintsStep({ formData, updateFormData, setIsValid }
     return '';
   }, [constraints.budget.max, constraints.budget.min]);
 
+  const urgencyValue = constraints.timeline.urgency ?? '';
+  const urgencySelectValue = isOtherValue(urgencyValue) ? OTHER_OPTION : urgencyValue;
+  const urgencyOtherText = extractOtherText(urgencyValue);
+
   useEffect(() => {
-    const hasUrgency = Boolean(constraints.timeline.urgency);
+    const hasUrgency = isOtherValue(urgencyValue)
+      ? urgencyOtherText.trim().length > 0
+      : Boolean(urgencyValue);
     const hasSensitivity = Boolean(constraints.sensitivity.level);
     setIsValid(hasUrgency && hasSensitivity && !budgetError);
-  }, [budgetError, constraints.sensitivity.level, constraints.timeline.urgency, setIsValid]);
+  }, [budgetError, constraints.sensitivity.level, setIsValid, urgencyOtherText, urgencyValue]);
 
   const updateConstraints = (nextConstraints: BriefConstraints) => {
     updateFormData({ constraints: nextConstraints });
@@ -190,21 +205,38 @@ export default function ConstraintsStep({ formData, updateFormData, setIsValid }
           <Label>Flexibility</Label>
           <RadioGroup
             value={constraints.budget.flexibility}
-            onValueChange={(value) => updateBudget({ flexibility: value as 'Firm' | 'Flexible' })}
+            onValueChange={(value) =>
+              updateBudget({
+                flexibility: value as BriefConstraints['budget']['flexibility'],
+              })
+            }
             className="gap-3"
           >
             <label className="flex items-start gap-3 text-sm cursor-pointer">
               <RadioGroupItem value="Firm" id="budget-firm" className="mt-0.5" />
               <span>
                 <span className="font-medium text-foreground">Firm</span>
-                <span className="block text-muted-foreground">Firm budget - cannot exceed maximum</span>
+                <span className="block text-muted-foreground">
+                  Hard cap, cannot exceed maximum under any circumstances
+                </span>
               </span>
             </label>
             <label className="flex items-start gap-3 text-sm cursor-pointer">
               <RadioGroupItem value="Flexible" id="budget-flexible" className="mt-0.5" />
               <span>
                 <span className="font-medium text-foreground">Flexible</span>
-                <span className="block text-muted-foreground">Some flexibility - can discuss if justified</span>
+                <span className="block text-muted-foreground">
+                  Some flexibility if the provider justifies the overage
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 text-sm cursor-pointer">
+              <RadioGroupItem value="To be determined" id="budget-tbd" className="mt-0.5" />
+              <span>
+                <span className="font-medium text-foreground">To be determined</span>
+                <span className="block text-muted-foreground">
+                  Budget is not yet finalized, provide your best estimate above
+                </span>
               </span>
             </label>
           </RadioGroup>
@@ -221,8 +253,12 @@ export default function ConstraintsStep({ formData, updateFormData, setIsValid }
           <div className="space-y-1">
             <Label>Urgency *</Label>
             <Select
-              value={constraints.timeline.urgency ?? ''}
-              onValueChange={(value) => updateTimeline({ urgency: value as TimelineUrgency })}
+              value={urgencySelectValue}
+              onValueChange={(value) =>
+                updateTimeline({
+                  urgency: (value === OTHER_OPTION ? `${OTHER_PREFIX}` : value) as TimelineUrgency,
+                })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select urgency..." />
@@ -233,8 +269,20 @@ export default function ConstraintsStep({ formData, updateFormData, setIsValid }
                     {option}
                   </SelectItem>
                 ))}
+                <SelectItem value={OTHER_OPTION}>{OTHER_OPTION}</SelectItem>
               </SelectContent>
             </Select>
+            {urgencySelectValue === OTHER_OPTION && (
+              <Input
+                value={urgencyOtherText}
+                onChange={(event) =>
+                  updateTimeline({
+                    urgency: `${OTHER_PREFIX}${event.target.value}` as TimelineUrgency,
+                  })
+                }
+                placeholder="Please specify..."
+              />
+            )}
           </div>
 
           <div className="space-y-1">

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { BriefStepProps } from '@/types/briefForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 interface ProjectTypeStepProps extends BriefStepProps {
@@ -23,12 +25,24 @@ export function ProjectTypeStep({
   projectTypeError,
   clearProjectTypeError,
 }: ProjectTypeStepProps) {
+  const isOtherProjectTypeSelected = formData.projectTypeId === 'other';
+  const customProjectType = formData.customProjectType ?? '';
+
   useEffect(() => {
-    setIsValid(Boolean(formData.projectTypeId));
-  }, [formData.projectTypeId, setIsValid]);
+    const valid =
+      Boolean(formData.projectTypeId) &&
+      (!isOtherProjectTypeSelected || customProjectType.trim().length > 0);
+    setIsValid(valid);
+  }, [customProjectType, formData.projectTypeId, isOtherProjectTypeSelected, setIsValid]);
 
   const handleSelect = (projectTypeId: string) => {
-    updateFormData({ projectTypeId });
+    if (projectTypeId === 'other') {
+      updateFormData({ projectTypeId });
+      clearProjectTypeError();
+      return;
+    }
+
+    updateFormData({ projectTypeId, customProjectType: undefined });
     clearProjectTypeError();
   };
 
@@ -101,7 +115,58 @@ export function ProjectTypeStep({
             </button>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => handleSelect('other')}
+          className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-lg"
+        >
+          <Card
+            className={cn(
+              'h-full transition border',
+              isOtherProjectTypeSelected
+                ? 'border-primary/60 ring-2 ring-primary/30'
+                : 'hover:border-muted-foreground/40'
+            )}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Other / Custom</CardTitle>
+                  <CardDescription className="mt-1">Custom</CardDescription>
+                </div>
+                {isOtherProjectTypeSelected && (
+                  <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                    Selected
+                  </span>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                My project doesn&apos;t fit these categories
+              </p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
+
+      {isOtherProjectTypeSelected && (
+        <div className="space-y-1">
+          <Label htmlFor="customProjectType">Describe your project type *</Label>
+          <Input
+            id="customProjectType"
+            value={customProjectType}
+            onChange={(event) => {
+              updateFormData({ customProjectType: event.target.value });
+              if (event.target.value.trim()) {
+                clearProjectTypeError();
+              }
+            }}
+            placeholder="e.g., Safety management system rollout, fleet telematics integration..."
+          />
+        </div>
+      )}
 
       {projectTypeError && <p className="text-sm text-destructive">{projectTypeError}</p>}
     </div>
