@@ -1,9 +1,10 @@
 import { cn } from '@/lib/utils';
 import type { RequestStatus, ShortlistStatus, TimelineUrgency, SensitivityLevel } from '@/types/database';
+import type { BriefStatus } from '@/types/brief';
 
 interface StatusBadgeProps {
-  status: RequestStatus | ShortlistStatus | TimelineUrgency | SensitivityLevel;
-  variant?: 'request' | 'shortlist' | 'urgency' | 'sensitivity';
+  status: RequestStatus | ShortlistStatus | TimelineUrgency | SensitivityLevel | BriefStatus;
+  variant?: 'request' | 'shortlist' | 'urgency' | 'sensitivity' | 'brief';
   className?: string;
 }
 
@@ -39,6 +40,18 @@ const sensitivityStyles: Record<SensitivityLevel, string> = {
   'Highly Confidential': 'bg-destructive/15 text-destructive',
 };
 
+const briefStatusStyles: Record<BriefStatus, string> = {
+  'Draft': 'bg-muted text-muted-foreground dark:bg-muted/40 dark:text-muted-foreground',
+  'In Review': 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+  'Locked': 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
+  'Matching': 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+  'Shortlisted': 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300',
+  'Selected': 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
+  'In Execution': 'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300',
+  'Completed': 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+  'Cancelled': 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+};
+
 export function StatusBadge({ status, variant = 'request', className }: StatusBadgeProps) {
   let styles = '';
   
@@ -54,6 +67,9 @@ export function StatusBadge({ status, variant = 'request', className }: StatusBa
       break;
     case 'sensitivity':
       styles = sensitivityStyles[status as SensitivityLevel] || 'bg-muted text-muted-foreground';
+      break;
+    case 'brief':
+      styles = briefStatusStyles[status as BriefStatus] || 'bg-muted text-muted-foreground dark:bg-muted/40 dark:text-muted-foreground';
       break;
   }
 
