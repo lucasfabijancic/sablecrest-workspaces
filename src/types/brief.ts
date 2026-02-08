@@ -1,7 +1,8 @@
 import type { SensitivityLevel, TimelineUrgency } from './database';
 
 export type BriefStatus =
-  | 'Draft'
+  | 'Advisor Draft'
+  | 'Client Review'
   | 'In Review'
   | 'Locked'
   | 'Matching'
@@ -37,6 +38,8 @@ export interface SuccessCriterion {
   target: string;
   measurementMethod: string;
   timeframe: string;
+  source?: 'client' | 'advisor' | 'ai';
+  confirmedByClient?: boolean;
   weight: number; // 1-10, importance for matching. Default 5.
 }
 
@@ -54,7 +57,15 @@ export interface RiskFactor {
   likelihood: 'Low' | 'Medium' | 'High';
   impact: 'Low' | 'Medium' | 'High';
   mitigation?: string;
-  source: 'User' | 'AI Identified';
+  source: 'User' | 'AI Identified' | 'Sablecrest Identified';
+}
+
+export interface FieldSource {
+  source: 'advisor' | 'client' | 'document' | 'ai';
+  confirmedByClient: boolean;
+  confirmedAt?: string;
+  clientNotes?: string;
+  markedForClientInput: boolean;
 }
 
 export interface ImplementationBrief {
@@ -70,6 +81,14 @@ export interface ImplementationBrief {
   constraints: BriefConstraints;
   riskFactors: RiskFactor[];
   intakeResponses: Record<string, any>;
+  advisorId?: string;
+  advisorNotes?: string;
+  discoveryDate?: string;
+  discoveryNotes?: string;
+  clientReviewStartedAt?: string;
+  clientReviewCompletedAt?: string;
+  fieldSources?: Record<string, FieldSource>;
+  clientNotes?: Record<string, string>;
   lockedAt?: string;
   lockedBy?: string;
   ownerId: string;
@@ -86,3 +105,16 @@ export interface BriefVersion {
   createdAt: string;
   createdBy: string;
 }
+
+export const BRIEF_STATUS_ORDER: BriefStatus[] = [
+  'Advisor Draft',
+  'Client Review',
+  'In Review',
+  'Locked',
+  'Matching',
+  'Shortlisted',
+  'Selected',
+  'In Execution',
+  'Completed',
+  'Cancelled',
+];

@@ -9,6 +9,9 @@ import type { SensitivityLevel, TimelineUrgency } from '@/types/database';
 export interface BriefFormData {
   projectTypeId: string | null;
   customProjectType?: string;
+  advisorNotes?: string;
+  discoveryNotes?: string;
+  fieldMarkedForClient?: Record<string, boolean>;
   businessContext: BusinessContext;
   intakeResponses: Record<string, any>;
   successCriteria: SuccessCriterion[];
@@ -29,6 +32,9 @@ const EMPTY_SENSITIVITY_LEVEL = '' as SensitivityLevel;
 export const INITIAL_FORM_DATA: BriefFormData = {
   projectTypeId: null,
   customProjectType: undefined,
+  advisorNotes: '',
+  discoveryNotes: '',
+  fieldMarkedForClient: {},
   businessContext: {
     companyName: '',
     companySize: '',
