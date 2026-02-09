@@ -174,32 +174,32 @@
     @apply bg-background text-foreground;
     font-size: 13px;
     line-height: 1.55;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   /* Typography scale - tighter, professional */
   h1 {
     @apply text-xl font-semibold tracking-tight;
     line-height: 1.2;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   h2 {
     @apply text-base font-semibold tracking-tight;
     line-height: 1.25;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   h3 {
     @apply text-sm font-medium;
     line-height: 1.35;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   h4 {
     @apply text-xs font-medium;
     line-height: 1.4;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   /* Mono font */
