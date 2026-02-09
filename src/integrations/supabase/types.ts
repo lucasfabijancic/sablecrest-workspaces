@@ -97,6 +97,156 @@ export type Database = {
           },
         ]
       }
+      client_invitations: {
+        Row: {
+          brief_id: string
+          client_profile_id: string
+          completed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          opened_at: string | null
+          sent_at: string | null
+          status: string
+          welcome_message: string | null
+          workspace_id: string
+        }
+        Insert: {
+          brief_id: string
+          client_profile_id: string
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string
+          welcome_message?: string | null
+          workspace_id: string
+        }
+        Update: {
+          brief_id?: string
+          client_profile_id?: string
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string
+          welcome_message?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invitations_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invitations_client_profile_id_fkey"
+            columns: ["client_profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_profiles: {
+        Row: {
+          active_project_count: number | null
+          annual_revenue_range: string | null
+          assigned_advisor_id: string | null
+          company_dba: string | null
+          company_legal_name: string
+          created_at: string
+          current_systems: Json | null
+          discovery_call_date: string | null
+          discovery_call_notes: string | null
+          documents_received: Json | null
+          employee_count: number | null
+          geographic_footprint: string | null
+          growth_trajectory: string | null
+          id: string
+          it_maturity: string | null
+          office_field_split: string | null
+          onboarding_status: string
+          previous_implementations: string | null
+          primary_contact_email: string
+          primary_contact_name: string
+          primary_contact_role: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_project_count?: number | null
+          annual_revenue_range?: string | null
+          assigned_advisor_id?: string | null
+          company_dba?: string | null
+          company_legal_name: string
+          created_at?: string
+          current_systems?: Json | null
+          discovery_call_date?: string | null
+          discovery_call_notes?: string | null
+          documents_received?: Json | null
+          employee_count?: number | null
+          geographic_footprint?: string | null
+          growth_trajectory?: string | null
+          id?: string
+          it_maturity?: string | null
+          office_field_split?: string | null
+          onboarding_status?: string
+          previous_implementations?: string | null
+          primary_contact_email: string
+          primary_contact_name: string
+          primary_contact_role?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_project_count?: number | null
+          annual_revenue_range?: string | null
+          assigned_advisor_id?: string | null
+          company_dba?: string | null
+          company_legal_name?: string
+          created_at?: string
+          current_systems?: Json | null
+          discovery_call_date?: string | null
+          discovery_call_notes?: string | null
+          documents_received?: Json | null
+          employee_count?: number | null
+          geographic_footprint?: string | null
+          growth_trajectory?: string | null
+          id?: string
+          it_maturity?: string | null
+          office_field_split?: string | null
+          onboarding_status?: string
+          previous_implementations?: string | null
+          primary_contact_email?: string
+          primary_contact_name?: string
+          primary_contact_role?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
@@ -163,10 +313,18 @@ export type Database = {
       }
       implementation_briefs: {
         Row: {
+          advisor_id: string | null
+          advisor_notes: string | null
           business_context: Json | null
+          client_notes: Json | null
+          client_review_completed_at: string | null
+          client_review_started_at: string | null
           constraints: Json | null
           created_at: string
           current_version: number
+          discovery_date: string | null
+          discovery_notes: string | null
+          field_sources: Json | null
           id: string
           intake_responses: Json | null
           locked_at: string | null
@@ -182,10 +340,18 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          advisor_id?: string | null
+          advisor_notes?: string | null
           business_context?: Json | null
+          client_notes?: Json | null
+          client_review_completed_at?: string | null
+          client_review_started_at?: string | null
           constraints?: Json | null
           created_at?: string
           current_version?: number
+          discovery_date?: string | null
+          discovery_notes?: string | null
+          field_sources?: Json | null
           id?: string
           intake_responses?: Json | null
           locked_at?: string | null
@@ -201,10 +367,18 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          advisor_id?: string | null
+          advisor_notes?: string | null
           business_context?: Json | null
+          client_notes?: Json | null
+          client_review_completed_at?: string | null
+          client_review_started_at?: string | null
           constraints?: Json | null
           created_at?: string
           current_version?: number
+          discovery_date?: string | null
+          discovery_notes?: string | null
+          field_sources?: Json | null
           id?: string
           intake_responses?: Json | null
           locked_at?: string | null

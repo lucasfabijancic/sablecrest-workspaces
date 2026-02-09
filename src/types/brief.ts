@@ -1,6 +1,7 @@
 import type { SensitivityLevel, TimelineUrgency } from './database';
 
 export type BriefStatus =
+  | 'Draft'
   | 'Advisor Draft'
   | 'Client Review'
   | 'In Review'
@@ -107,6 +108,7 @@ export interface BriefVersion {
 }
 
 export const BRIEF_STATUS_ORDER: BriefStatus[] = [
+  'Draft',
   'Advisor Draft',
   'Client Review',
   'In Review',

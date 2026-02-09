@@ -266,12 +266,12 @@ const buildRequirementsFromIntake = (
       return {
         id: globalThis.crypto?.randomUUID?.() ?? `req-${question.id}-${Math.random().toString(36).slice(2, 8)}`,
         category: inferRequirementCategory(question.id),
-        priority: question.required ? 'Must Have' : 'Should Have',
+        priority: (question.required ? 'Must Have' : 'Should Have') as BriefRequirement['priority'],
         description: `${question.question}: ${normalizedAnswer}`,
         source: 'User' as const,
-      };
+      } satisfies BriefRequirement;
     })
-    .filter((item): item is BriefRequirement => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null) as BriefRequirement[];
 };
 
 export default function AdminBriefCreator() {
