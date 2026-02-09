@@ -14,6 +14,7 @@ import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
+import ClientSetup from "./pages/admin/ClientSetup";
 import ProviderRegistry from "./pages/ProviderRegistry";
 import Scorecards from "./pages/Scorecards";
 import ShortlistCompare from "./pages/ShortlistCompare";
@@ -23,6 +24,17 @@ import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences }
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const AdminBriefCreator = NewBrief;
+
+const ClientsList = () => <div className="p-8 text-muted-foreground">Coming soon - Clients List</div>;
+
+const ClientOnboarding = () => (
+  <div className="p-8 text-muted-foreground">Coming soon - Client Onboarding</div>
+);
+
+const GuidedBriefReview = () => (
+  <div className="p-8 text-muted-foreground">Coming soon - Guided Brief Review</div>
+);
 
 // Apply theme class before React renders to prevent flash
 const storedTheme = localStorage.getItem('theme');
@@ -48,6 +60,12 @@ const App = () => (
               <Route path="/" element={<AppLayout />}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="admin/clients/new" element={<ClientSetup />} />
+                <Route path="admin/clients" element={<ClientsList />} />
+                <Route path="admin/briefs/create" element={<AdminBriefCreator />} />
+                <Route path="admin/briefs/create/:clientId" element={<AdminBriefCreator />} />
+                <Route path="onboarding" element={<ClientOnboarding />} />
+                <Route path="briefs/:id/review" element={<GuidedBriefReview />} />
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="requests/new" element={<NewRequest />} />
                 <Route path="requests/:id" element={<RequestDetail />} />

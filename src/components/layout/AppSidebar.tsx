@@ -5,6 +5,7 @@ import {
   LayoutDashboard, 
   ChevronsUpDown,
   Database,
+  Users,
   UserCircle,
   Shield,
   Scale,
@@ -43,17 +44,16 @@ type DevRole = 'buyer' | 'internal' | 'provider';
 // Navigation structure organized by role
 const buyerNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Briefs', url: '/briefs', icon: FileText },
-  { title: 'Shortlists', url: '/shortlists', icon: Layers },
+  { title: 'My Briefs', url: '/briefs', icon: FileText },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
+  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 const internalNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Clients', url: '/admin/clients', icon: Users },
   { title: 'Briefs', url: '/briefs', icon: FileText },
   { title: 'Providers', url: '/providers', icon: Database },
-  { title: 'Scorecards', url: '/scorecards', icon: Scale },
-  { title: 'Shortlists', url: '/shortlists', icon: Layers },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
 ];
 
@@ -78,6 +78,7 @@ export function AppSidebar() {
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
+    if (url.startsWith('/admin/')) return location.pathname === url || location.pathname.startsWith(`${url}/`);
     if (url === '/shortlists') return location.pathname.startsWith('/shortlists');
     return location.pathname.startsWith(url);
   };
