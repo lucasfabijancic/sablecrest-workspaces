@@ -15,6 +15,7 @@ import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
 import ClientSetup from "./pages/admin/ClientSetup";
+import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
 import ProviderRegistry from "./pages/ProviderRegistry";
 import Scorecards from "./pages/Scorecards";
 import ShortlistCompare from "./pages/ShortlistCompare";
@@ -24,7 +25,6 @@ import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences }
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-const AdminBriefCreator = NewBrief;
 
 const ClientsList = () => <div className="p-8 text-muted-foreground">Coming soon - Clients List</div>;
 

@@ -287,30 +287,34 @@ export default function ClientSetup() {
       const db = supabase as any;
       const discoveryNotes = buildDiscoveryCallNotes();
 
-      const { error: profileError } = await db.from('client_profiles').insert({
-        workspace_id: workspace.id,
-        company_legal_name: formData.companyLegalName.trim(),
-        company_dba: toNullIfEmpty(formData.companyDba),
-        annual_revenue_range: toNullIfEmpty(formData.annualRevenueRange),
-        employee_count: parseOptionalNumber(formData.employeeCount),
-        office_field_split: toNullIfEmpty(formData.officeFieldSplit),
-        active_project_count: parseOptionalNumber(formData.activeProjectCount),
-        geographic_footprint: toNullIfEmpty(formData.geographicFootprint),
-        growth_trajectory: formData.growthTrajectory || null,
-        current_systems: formData.currentSystems,
-        it_maturity: formData.itMaturity || null,
-        previous_implementations: toNullIfEmpty(formData.previousImplementations),
-        assigned_advisor_id: user.id,
-        primary_contact_name: formData.primaryContactName.trim(),
-        primary_contact_email: formData.primaryContactEmail.trim().toLowerCase(),
-        primary_contact_role: toNullIfEmpty(formData.primaryContactRole),
-        discovery_call_date: formData.discoveryCallDate
-          ? new Date(`${formData.discoveryCallDate}T00:00:00Z`).toISOString()
-          : null,
-        discovery_call_notes: discoveryNotes || null,
-        documents_received: parseDelimitedList(formData.documentsReceived),
-        onboarding_status: 'Brief In Progress',
-      });
+      const { data: clientProfile, error: profileError } = await db
+        .from('client_profiles')
+        .insert({
+          workspace_id: workspace.id,
+          company_legal_name: formData.companyLegalName.trim(),
+          company_dba: toNullIfEmpty(formData.companyDba),
+          annual_revenue_range: toNullIfEmpty(formData.annualRevenueRange),
+          employee_count: parseOptionalNumber(formData.employeeCount),
+          office_field_split: toNullIfEmpty(formData.officeFieldSplit),
+          active_project_count: parseOptionalNumber(formData.activeProjectCount),
+          geographic_footprint: toNullIfEmpty(formData.geographicFootprint),
+          growth_trajectory: formData.growthTrajectory || null,
+          current_systems: formData.currentSystems,
+          it_maturity: formData.itMaturity || null,
+          previous_implementations: toNullIfEmpty(formData.previousImplementations),
+          assigned_advisor_id: user.id,
+          primary_contact_name: formData.primaryContactName.trim(),
+          primary_contact_email: formData.primaryContactEmail.trim().toLowerCase(),
+          primary_contact_role: toNullIfEmpty(formData.primaryContactRole),
+          discovery_call_date: formData.discoveryCallDate
+            ? new Date(`${formData.discoveryCallDate}T00:00:00Z`).toISOString()
+            : null,
+          discovery_call_notes: discoveryNotes || null,
+          documents_received: parseDelimitedList(formData.documentsReceived),
+          onboarding_status: 'Brief In Progress',
+        })
+        .select('id')
+        .single();
 
       if (profileError) throw profileError;
 
@@ -325,7 +329,16 @@ export default function ClientSetup() {
         title: 'Client workspace created',
         description: 'Workspace and client profile were created from discovery notes.',
         action: (
-          <ToastAction altText="Create Implementation Brief" onClick={() => navigate('/briefs/new')}>
+          <ToastAction
+            altText="Create Implementation Brief"
+            onClick={() =>
+              navigate(
+                clientProfile?.id
+                  ? `/admin/briefs/create/${clientProfile.id}`
+                  : '/admin/briefs/create'
+              )
+            }
+          >
             Create Implementation Brief for this client
           </ToastAction>
         ),
