@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { Json } from '@/integrations/supabase/types';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Save } from 'lucide-react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { supabase } from '@/integrations/supabase/client';
@@ -116,12 +117,12 @@ export default function NewBrief() {
       title: buildBriefTitle(),
       project_type_id: formData.projectTypeId ?? '',
       status,
-      business_context: formData.businessContext,
-      requirements: [],
-      success_criteria: formData.successCriteria,
-      constraints: formData.constraints,
-      risk_factors: formData.riskFactors,
-      intake_responses: formData.intakeResponses,
+      business_context: JSON.parse(JSON.stringify(formData.businessContext)),
+      requirements: [] as Json[],
+      success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
+      constraints: JSON.parse(JSON.stringify(formData.constraints)),
+      risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
+      intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
       locked_at: status === 'Locked' ? new Date().toISOString() : null,
       locked_by: status === 'Locked' ? user?.id ?? null : null,
       owner_id: user?.id ?? null,
@@ -224,12 +225,12 @@ export default function NewBrief() {
         title: getSubmissionTitle(),
         project_type_id: formData.projectTypeId,
         status: 'Draft',
-        business_context: formData.businessContext,
-        requirements: [],
-        success_criteria: formData.successCriteria,
-        constraints: formData.constraints,
-        intake_responses: formData.intakeResponses,
-        risk_factors: formData.riskFactors,
+        business_context: JSON.parse(JSON.stringify(formData.businessContext)),
+        requirements: [] as Json[],
+        success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
+        constraints: JSON.parse(JSON.stringify(formData.constraints)),
+        intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
+        risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
         owner_id: user.id,
       };
 
@@ -314,12 +315,12 @@ export default function NewBrief() {
         title: getSubmissionTitle(),
         project_type_id: formData.projectTypeId,
         status: 'In Review',
-        business_context: formData.businessContext,
-        requirements: [],
-        success_criteria: formData.successCriteria,
-        constraints: formData.constraints,
-        intake_responses: formData.intakeResponses,
-        risk_factors: formData.riskFactors,
+        business_context: JSON.parse(JSON.stringify(formData.businessContext)),
+        requirements: [] as Json[],
+        success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
+        constraints: JSON.parse(JSON.stringify(formData.constraints)),
+        intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
+        risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
         owner_id: user.id,
       };
 

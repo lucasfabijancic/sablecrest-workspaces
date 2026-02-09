@@ -42,6 +42,8 @@ const sensitivityStyles: Record<SensitivityLevel, string> = {
 
 const briefStatusStyles: Record<BriefStatus, string> = {
   'Draft': 'bg-muted text-muted-foreground dark:bg-muted/40 dark:text-muted-foreground',
+  'Advisor Draft': 'bg-slate-50 text-slate-700 dark:bg-slate-950/40 dark:text-slate-300',
+  'Client Review': 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300',
   'In Review': 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
   'Locked': 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
   'Matching': 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
