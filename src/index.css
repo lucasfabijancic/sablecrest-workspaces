@@ -1,3 +1,5 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -78,7 +80,7 @@
     --surface-3: 0 0% 96%;
 
     /* System font stack */
-    --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-sans: "Satoshi", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
 
@@ -172,31 +174,32 @@
     @apply bg-background text-foreground;
     font-size: 13px;
     line-height: 1.55;
-    letter-spacing: -0.006em;
+    letter-spacing: -0.02em;
   }
 
   /* Typography scale - tighter, professional */
   h1 {
     @apply text-xl font-semibold tracking-tight;
     line-height: 1.2;
-    letter-spacing: -0.018em;
+    letter-spacing: -0.02em;
   }
 
   h2 {
     @apply text-base font-semibold tracking-tight;
     line-height: 1.25;
-    letter-spacing: -0.014em;
+    letter-spacing: -0.02em;
   }
 
   h3 {
     @apply text-sm font-medium;
     line-height: 1.35;
-    letter-spacing: -0.008em;
+    letter-spacing: -0.02em;
   }
 
   h4 {
     @apply text-xs font-medium;
     line-height: 1.4;
+    letter-spacing: -0.02em;
   }
 
   /* Mono font */

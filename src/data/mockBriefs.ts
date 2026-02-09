@@ -1,9 +1,10 @@
 import type {
-  ImplementationBrief,
-  BusinessContext,
-  SuccessCriterion,
   BriefConstraints,
+  BusinessContext,
+  FieldSource,
+  ImplementationBrief,
   RiskFactor,
+  SuccessCriterion,
 } from '@/types/brief';
 
 const workspaceId = 'mock-workspace-001';
@@ -14,13 +15,207 @@ const buildSuccessCriteria = (criteria: SuccessCriterion[]): SuccessCriterion[] 
 const buildConstraints = (constraints: BriefConstraints): BriefConstraints => constraints;
 const buildRiskFactors = (riskFactors: RiskFactor[]): RiskFactor[] => riskFactors;
 
+interface BuildFieldSourcesOptions {
+  source?: FieldSource['source'];
+  confirmedByClient?: boolean;
+  confirmedAt?: string;
+  markedForClientInput?: string[];
+  notesByPath?: Record<string, string>;
+}
+
+const buildFieldSources = (
+  paths: string[],
+  options: BuildFieldSourcesOptions = {},
+): Record<string, FieldSource> => {
+  const {
+    source = 'advisor',
+    confirmedByClient = false,
+    confirmedAt,
+    markedForClientInput = [],
+    notesByPath = {},
+  } = options;
+
+  return paths.reduce<Record<string, FieldSource>>((accumulator, path) => {
+    const fieldSource: FieldSource = {
+      source,
+      confirmedByClient,
+      markedForClientInput: markedForClientInput.includes(path),
+    };
+
+    if (confirmedAt) {
+      fieldSource.confirmedAt = confirmedAt;
+    }
+
+    if (notesByPath[path]) {
+      fieldSource.clientNotes = notesByPath[path];
+    }
+
+    accumulator[path] = fieldSource;
+    return accumulator;
+  }, {});
+};
+
+const brief1FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'requirements.2',
+  'successCriteria.0',
+  'successCriteria.1',
+  'successCriteria.2',
+  'intakeResponses.current-erp',
+  'intakeResponses.user-count',
+  'intakeResponses.modules-needed',
+  'intakeResponses.integrations',
+  'intakeResponses.multi-entity',
+];
+
+const brief2FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'successCriteria.0',
+  'successCriteria.1',
+  'intakeResponses.project-volume',
+  'intakeResponses.field-users',
+  'intakeResponses.workflow-priorities',
+  'intakeResponses.document-control',
+  'intakeResponses.owner-visibility',
+];
+
+const brief3FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'successCriteria.0',
+  'successCriteria.1',
+  'successCriteria.2',
+  'intakeResponses.bim-maturity',
+  'intakeResponses.design-tools',
+  'intakeResponses.collaboration-needs',
+  'intakeResponses.model-ownership',
+  'intakeResponses.cde-platform',
+];
+
+const brief4FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'successCriteria.0',
+  'successCriteria.1',
+  'intakeResponses.systems-to-connect',
+  'intakeResponses.sync-frequency',
+  'intakeResponses.data-domains',
+  'intakeResponses.mapping-complexity',
+  'intakeResponses.integration-platform',
+];
+
+const brief5FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'successCriteria.0',
+  'successCriteria.1',
+  'intakeResponses.primary-use-case',
+  'intakeResponses.data-readiness',
+  'intakeResponses.data-sources',
+  'intakeResponses.integration-points',
+  'intakeResponses.risk-tolerance',
+];
+
+const brief6FieldPaths = [
+  'businessContext.companyName',
+  'businessContext.companySize',
+  'businessContext.industry',
+  'businessContext.currentState',
+  'businessContext.desiredOutcome',
+  'businessContext.keyStakeholders',
+  'businessContext.decisionTimeline',
+  'constraints.budget',
+  'constraints.timeline',
+  'constraints.sensitivity',
+  'constraints.technical',
+  'requirements.0',
+  'requirements.1',
+  'requirements.2',
+  'successCriteria.0',
+  'successCriteria.1',
+  'successCriteria.2',
+  'intakeResponses.estimate-volume',
+  'intakeResponses.trade-type',
+  'intakeResponses.current-tools',
+  'intakeResponses.cost-database',
+  'intakeResponses.integration-needs',
+];
+
+const brief3BaseFieldSources = buildFieldSources(brief3FieldPaths, {
+  source: 'advisor',
+  confirmedByClient: true,
+  confirmedAt: '2026-02-03T16:30:00Z',
+  notesByPath: {
+    'businessContext.currentState':
+      'We also have a Revit template library that needs migration.',
+    'successCriteria.0': 'We want to track template adoption rate too.',
+  },
+});
+
 export const mockBriefs: ImplementationBrief[] = [
   {
     id: 'brief-001',
     workspaceId,
     title: 'Sage 300 CRE Implementation',
     projectTypeId: 'erp-implementation',
-    status: 'Draft',
+    status: 'Advisor Draft',
     currentVersion: 1,
     businessContext: buildBusinessContext({
       companyName: 'Summit Ridge Constructors',
@@ -68,6 +263,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '5 business days or less',
         measurementMethod: 'System Report',
         timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
         weight: 8,
       },
       {
@@ -77,6 +274,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '2 days average',
         measurementMethod: 'System Report',
         timeframe: 'Full Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
         weight: 6,
       },
       {
@@ -86,6 +285,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '0 duplicate entries',
         measurementMethod: 'Manual Audit',
         timeframe: '30 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
         weight: 7,
       },
     ]),
@@ -118,7 +319,7 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'High',
         impact: 'High',
         mitigation: 'Complete data normalization and mapping workshop before migration.',
-        source: 'AI Identified',
+        source: 'Sablecrest Identified',
       },
       {
         id: 'brf-001-risk-2',
@@ -127,16 +328,42 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'Medium',
         impact: 'Medium',
         mitigation: 'Schedule payroll configuration sprints outside peak hiring weeks.',
-        source: 'User',
+        source: 'Sablecrest Identified',
       },
     ]),
     intakeResponses: {
       'current-erp': 'QuickBooks Enterprise with custom Excel job cost trackers',
       'user-count': 210,
-      'modules-needed': ['Financials / GL', 'Project accounting', 'Payroll', 'Procurement', 'Reporting / BI'],
-      'integrations': ['Project management (Procore, etc.)', 'HR / benefits', 'Timekeeping / field capture'],
+      'modules-needed': [
+        'Financials / GL',
+        'Project accounting',
+        'Payroll',
+        'Procurement',
+        'Reporting / BI',
+      ],
+      integrations: ['Project management (Procore, etc.)', 'HR / benefits', 'Timekeeping / field capture'],
       'multi-entity': 'Yes',
     },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      "Discovery call went well. CFO is the decision maker. They had a failed Viewpoint attempt in 2022. High urgency - fiscal year deadline.",
+    discoveryDate: '2026-01-15T15:00:00Z',
+    discoveryNotes:
+      'Met with CFO and Controller on Jan 15. Currently on QuickBooks + spreadsheets. Payroll reconciliation is 2 days per cycle. 6 PMs need field access.',
+    clientReviewStartedAt: undefined,
+    clientReviewCompletedAt: undefined,
+    fieldSources: buildFieldSources(brief1FieldPaths, {
+      source: 'advisor',
+      confirmedByClient: false,
+      markedForClientInput: [
+        'businessContext.currentState',
+        'businessContext.desiredOutcome',
+        'constraints.budget',
+      ],
+    }),
+    clientNotes: {},
+    lockedAt: undefined,
+    lockedBy: undefined,
     ownerId,
     createdAt: '2026-01-12T15:10:00.000Z',
     updatedAt: '2026-02-05T14:22:00.000Z',
@@ -146,8 +373,8 @@ export const mockBriefs: ImplementationBrief[] = [
     workspaceId,
     title: 'Procore Rollout Phase 2',
     projectTypeId: 'pm-software',
-    status: 'In Review',
-    currentVersion: 1,
+    status: 'Client Review',
+    currentVersion: 2,
     businessContext: buildBusinessContext({
       companyName: 'Oakline Homes',
       companySize: '85 employees',
@@ -158,7 +385,7 @@ export const mockBriefs: ImplementationBrief[] = [
         'Expand Procore adoption across daily logs and submittals with consistent field usage and clear owner visibility reporting.',
       keyStakeholders:
         'VP Construction (sponsor), Director of Operations, IT Lead, 12 Superintendents, 4 Project Coordinators',
-      decisionTimeline: 'Ready to decide now',
+      decisionTimeline: 'Within 2 weeks',
     }),
     requirements: [
       {
@@ -186,6 +413,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '90% active weekly usage',
         measurementMethod: 'Adoption Analytics',
         timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
         weight: 9,
       },
       {
@@ -195,6 +424,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '3 days',
         measurementMethod: 'System Report',
         timeframe: '30 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
         weight: 7,
       },
     ]),
@@ -227,6 +458,15 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'Medium',
         impact: 'High',
         mitigation: 'Run phased enablement by region with on-site champions.',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brf-002-risk-2',
+        category: 'Timeline',
+        description: 'Parallel projects may reduce availability for phase 2 training.',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        mitigation: 'Stagger training with site-level super user coverage.',
         source: 'User',
       },
     ]),
@@ -237,17 +477,37 @@ export const mockBriefs: ImplementationBrief[] = [
       'document-control': 'Procore Drawings with some legacy files in SharePoint',
       'owner-visibility': 'Sometimes',
     },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      'Client is well-organized. IT team is capable. Main risk is change management with field crews.',
+    discoveryDate: '2026-01-28T16:00:00Z',
+    discoveryNotes:
+      'Phase 1 went live 6 months ago. Field adoption at 60%. Phase 2 covers RFIs, submittals, and schedule integration.',
+    clientReviewStartedAt: '2026-02-05T14:00:00Z',
+    clientReviewCompletedAt: undefined,
+    fieldSources: buildFieldSources(brief2FieldPaths, {
+      source: 'advisor',
+      confirmedByClient: false,
+      markedForClientInput: [
+        'businessContext.keyStakeholders',
+        'intakeResponses.workflow-priorities',
+        'intakeResponses.owner-visibility',
+      ],
+    }),
+    clientNotes: {},
+    lockedAt: undefined,
+    lockedBy: undefined,
     ownerId,
     createdAt: '2026-01-20T10:45:00.000Z',
-    updatedAt: '2026-02-03T16:30:00.000Z',
+    updatedAt: '2026-02-05T14:01:00.000Z',
   },
   {
     id: 'brief-003',
     workspaceId,
     title: 'BIM Standards & Workflow Design',
     projectTypeId: 'bim-vdc',
-    status: 'Locked',
-    currentVersion: 1,
+    status: 'In Review',
+    currentVersion: 3,
     businessContext: buildBusinessContext({
       companyName: 'Arcfield Studio',
       companySize: '40 employees',
@@ -286,6 +546,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '100% of new projects',
         measurementMethod: 'Manual Audit',
         timeframe: 'Phase 1 Go-Live',
+        source: 'client',
+        confirmedByClient: true,
         weight: 8,
       },
       {
@@ -295,6 +557,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '5 business days',
         measurementMethod: 'System Report',
         timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
         weight: 7,
       },
       {
@@ -304,6 +568,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '70 hours',
         measurementMethod: 'Time Study',
         timeframe: '6 Months Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
         weight: 6,
       },
     ]),
@@ -345,7 +611,7 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'Medium',
         impact: 'Medium',
         mitigation: 'Assign deputy BIM lead for standards documentation and approvals.',
-        source: 'AI Identified',
+        source: 'Sablecrest Identified',
       },
     ]),
     intakeResponses: {
@@ -355,19 +621,43 @@ export const mockBriefs: ImplementationBrief[] = [
       'model-ownership': 'Shared / TBD',
       'cde-platform': 'Evaluating',
     },
-    lockedAt: '2026-02-01T12:00:00.000Z',
-    lockedBy: 'mock-user-002',
+    advisorId: 'mock-advisor-002',
+    advisorNotes:
+      "Client added 2 new requirements I didn't anticipate. Need to assess if this changes matching.",
+    discoveryDate: '2026-01-22T11:00:00Z',
+    discoveryNotes:
+      'Initial discovery focused on standards governance. Client requested stronger owner handoff artifacts during review.',
+    clientReviewStartedAt: '2026-02-01T10:00:00Z',
+    clientReviewCompletedAt: '2026-02-03T16:30:00Z',
+    fieldSources: {
+      ...brief3BaseFieldSources,
+      'businessContext.currentState': {
+        ...brief3BaseFieldSources['businessContext.currentState'],
+        source: 'client',
+      },
+      'successCriteria.0': {
+        ...brief3BaseFieldSources['successCriteria.0'],
+        source: 'client',
+      },
+    },
+    clientNotes: {
+      'businessContext.currentState':
+        'We also have a Revit template library that needs migration.',
+      'successCriteria.0': 'We want to track template adoption rate too.',
+    },
+    lockedAt: undefined,
+    lockedBy: undefined,
     ownerId,
     createdAt: '2026-01-10T09:20:00.000Z',
-    updatedAt: '2026-02-01T12:00:00.000Z',
+    updatedAt: '2026-02-03T16:30:00.000Z',
   },
   {
     id: 'brief-004',
     workspaceId,
     title: 'ERP-Procore Integration',
     projectTypeId: 'system-integration',
-    status: 'In Execution',
-    currentVersion: 1,
+    status: 'Locked',
+    currentVersion: 4,
     businessContext: buildBusinessContext({
       companyName: 'Ironcrest Civil',
       companySize: '300 employees',
@@ -378,7 +668,7 @@ export const mockBriefs: ImplementationBrief[] = [
         'Implement a stable bidirectional integration so project and finance teams operate from synchronized cost and contract data.',
       keyStakeholders:
         'COO, Controller, PMO Director, Integration Architect, 14 Project Managers, AP Supervisor',
-      decisionTimeline: 'Ready to decide now',
+      decisionTimeline: 'Immediate',
     }),
     requirements: [
       {
@@ -406,6 +696,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: 'Under 4 staff hours',
         measurementMethod: 'Time Study',
         timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
         weight: 8,
       },
       {
@@ -415,6 +707,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '98% accurate transfer',
         measurementMethod: 'System Report',
         timeframe: '30 Days Post-Deployment',
+        source: 'client',
+        confirmedByClient: true,
         weight: 9,
       },
     ]),
@@ -447,7 +741,16 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'Medium',
         impact: 'High',
         mitigation: 'Implement queueing, throttling, and delta-based sync strategy.',
-        source: 'AI Identified',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brf-004-risk-2',
+        category: 'Timeline',
+        description: 'Cutover window is narrow due to end-of-quarter reporting needs.',
+        likelihood: 'High',
+        impact: 'High',
+        mitigation: 'Run dry-run migration and fallback plan one week before cutover.',
+        source: 'User',
       },
     ]),
     intakeResponses: {
@@ -457,17 +760,35 @@ export const mockBriefs: ImplementationBrief[] = [
       'mapping-complexity': 'Complex',
       'integration-platform': 'Yes',
     },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      'Integration scope is stable. Recommend a provider with heavy Vista connector experience and cutover governance playbooks.',
+    discoveryDate: '2026-01-26T13:00:00Z',
+    discoveryNotes:
+      'Finance and PMO are aligned. Their main issue is billing delay from reconciliation gaps between systems.',
+    clientReviewStartedAt: '2026-02-02T09:15:00Z',
+    clientReviewCompletedAt: '2026-02-05T18:10:00Z',
+    fieldSources: buildFieldSources(brief4FieldPaths, {
+      source: 'advisor',
+      confirmedByClient: true,
+      confirmedAt: '2026-02-05T18:10:00Z',
+    }),
+    clientNotes: {
+      'constraints.timeline': 'Quarter-close date is not movable.',
+    },
+    lockedAt: '2026-02-06T09:00:00Z',
+    lockedBy: 'mock-advisor-001',
     ownerId,
     createdAt: '2026-01-18T11:05:00.000Z',
-    updatedAt: '2026-02-04T13:40:00.000Z',
+    updatedAt: '2026-02-06T09:00:00.000Z',
   },
   {
     id: 'brief-005',
     workspaceId,
     title: 'AI Takeoff Pilot',
     projectTypeId: 'ai-automation',
-    status: 'Completed',
-    currentVersion: 1,
+    status: 'Shortlisted',
+    currentVersion: 5,
     businessContext: buildBusinessContext({
       companyName: 'Beacon Electric Group',
       companySize: '50 employees',
@@ -506,6 +827,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '8 hours',
         measurementMethod: 'Time Study',
         timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
         weight: 8,
       },
       {
@@ -515,6 +838,8 @@ export const mockBriefs: ImplementationBrief[] = [
         target: '5% variance or less',
         measurementMethod: 'Financial Reconciliation',
         timeframe: '6 Months Post-Deployment',
+        source: 'client',
+        confirmedByClient: true,
         weight: 7,
       },
     ]),
@@ -526,7 +851,7 @@ export const mockBriefs: ImplementationBrief[] = [
       },
       timeline: {
         urgency: 'Within 1 month',
-        hardDeadline: '2026-01-20',
+        hardDeadline: '2026-03-20',
         reason: 'Pilot needed before annual estimating process review.',
       },
       sensitivity: {
@@ -547,7 +872,7 @@ export const mockBriefs: ImplementationBrief[] = [
         likelihood: 'Medium',
         impact: 'Medium',
         mitigation: 'Segment pilot by drawing quality profile and tune model thresholds.',
-        source: 'AI Identified',
+        source: 'Sablecrest Identified',
       },
       {
         id: 'brf-005-risk-2',
@@ -560,14 +885,184 @@ export const mockBriefs: ImplementationBrief[] = [
       },
     ]),
     intakeResponses: {
-      'primary-use-case': 'AI-assisted electrical takeoff for conduit runs, fixtures, and panel schedules on 3 pilot projects.',
+      'primary-use-case':
+        'AI-assisted electrical takeoff for conduit runs, fixtures, and panel schedules on 3 pilot projects.',
       'data-readiness': 'Good',
       'data-sources': ['Document management', 'Project management'],
       'integration-points': ['BI dashboards', 'Email'],
       'risk-tolerance': 'High-risk only',
     },
+    advisorId: 'mock-advisor-002',
+    advisorNotes:
+      'Shortlist includes two specialist AI takeoff firms and one ERP-adjacent analytics provider for fallback options.',
+    discoveryDate: '2026-01-14T10:30:00Z',
+    discoveryNotes:
+      'Client wants measurable cycle-time gains without risking bid quality; pilot governance and QA controls are mandatory.',
+    clientReviewStartedAt: '2026-01-29T09:00:00Z',
+    clientReviewCompletedAt: '2026-01-31T15:20:00Z',
+    fieldSources: buildFieldSources(brief5FieldPaths, {
+      source: 'advisor',
+      confirmedByClient: true,
+      confirmedAt: '2026-01-31T15:20:00Z',
+    }),
+    clientNotes: {
+      'constraints.technical': 'Keep estimator sign-off mandatory for every pilot package.',
+    },
+    lockedAt: '2026-02-01T08:45:00Z',
+    lockedBy: 'mock-advisor-002',
     ownerId,
     createdAt: '2026-01-08T08:30:00.000Z',
+    updatedAt: '2026-02-07T12:10:00.000Z',
+  },
+  {
+    id: 'brief-006',
+    workspaceId,
+    title: 'Estimating System Upgrade',
+    projectTypeId: 'estimating-takeoff',
+    status: 'Completed',
+    currentVersion: 6,
+    businessContext: buildBusinessContext({
+      companyName: 'Northpoint Mechanical',
+      companySize: '140 employees',
+      industry: 'Mechanical Contractor',
+      currentState:
+        'Estimators rely on disconnected spreadsheets and legacy desktop databases, creating handoff friction to project controls after award.',
+      desiredOutcome:
+        'Deploy a modern estimating and digital takeoff stack with reusable assemblies, bid comparison workflows, and ERP integration.',
+      keyStakeholders:
+        'CEO, VP Preconstruction, Estimating Manager, Controller, 7 Estimators, 3 Project Controls Analysts',
+      decisionTimeline: 'Within 3 months',
+    }),
+    requirements: [
+      {
+        id: 'brf-006-req-1',
+        category: 'Functional',
+        priority: 'Must Have',
+        description: 'Create standardized assemblies and cost libraries for HVAC and piping scopes.',
+        acceptanceCriteria: 'All new bids use standardized assemblies with version history enabled.',
+        source: 'User',
+      },
+      {
+        id: 'brf-006-req-2',
+        category: 'Integration',
+        priority: 'Must Have',
+        description: 'Sync awarded estimate structures into ERP job setup workflows.',
+        acceptanceCriteria: 'Awarded bids generate ERP job setup package in under 30 minutes.',
+        source: 'User',
+      },
+      {
+        id: 'brf-006-req-3',
+        category: 'Training',
+        priority: 'Should Have',
+        description: 'Run role-based training for estimators, project controls, and finance teams.',
+        acceptanceCriteria: 'At least 95% completion before cutover with post-training competency checks.',
+        source: 'Template',
+      },
+    ],
+    successCriteria: buildSuccessCriteria([
+      {
+        id: 'brf-006-sc-1',
+        metric: 'Average bid turnaround time',
+        baseline: '11 business days',
+        target: '6 business days',
+        measurementMethod: 'System Report',
+        timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
+        weight: 9,
+      },
+      {
+        id: 'brf-006-sc-2',
+        metric: 'Awarded job setup handoff time',
+        baseline: '3 business days',
+        target: 'Same business day',
+        measurementMethod: 'Time Study',
+        timeframe: '30 Days Post-Deployment',
+        source: 'client',
+        confirmedByClient: true,
+        weight: 8,
+      },
+      {
+        id: 'brf-006-sc-3',
+        metric: 'Estimate variance vs. final project cost',
+        baseline: '15% variance',
+        target: '8% variance',
+        measurementMethod: 'Financial Reconciliation',
+        timeframe: '6 Months Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
+        weight: 7,
+      },
+    ]),
+    constraints: buildConstraints({
+      budget: {
+        min: 120000,
+        max: 240000,
+        flexibility: 'Firm',
+      },
+      timeline: {
+        urgency: 'Within 3 months',
+        hardDeadline: '2026-01-31',
+        reason: 'Executive team required rollout before FY planning lock.',
+      },
+      sensitivity: {
+        level: 'Confidential',
+        concerns: ['Unit pricing and bid strategy confidentiality'],
+      },
+      technical: {
+        mustIntegrate: ['Trimble', 'Sage 300 CRE'],
+        cannotChange: ['Existing approval thresholds for final bid signoff'],
+        preferences: ['Cloud deployment with SSO'],
+      },
+    }),
+    riskFactors: buildRiskFactors([
+      {
+        id: 'brf-006-risk-1',
+        category: 'Organizational',
+        description: 'Senior estimators may resist standardized assemblies early in rollout.',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        mitigation: 'Use pilot champions and weekly calibration sessions for first 8 weeks.',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brf-006-risk-2',
+        category: 'Technical',
+        description: 'Legacy estimate data has inconsistent coding and units.',
+        likelihood: 'High',
+        impact: 'High',
+        mitigation: 'Run data normalization pass before full migration and validate with QA samples.',
+        source: 'Sablecrest Identified',
+      },
+    ]),
+    intakeResponses: {
+      'estimate-volume': 42,
+      'trade-type': 'Mechanical',
+      'current-tools': ['Excel', 'Trimble Estimation', 'Bluebeam'],
+      'cost-database': 'Partially maintained, inconsistent coding across teams',
+      'integration-needs': ['ERP / job cost', 'Document management', 'BI dashboards'],
+    },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      'Engagement completed successfully. Provider exceeded adoption targets and delivered integration with minimal post-go-live defects.',
+    discoveryDate: '2025-08-12T14:00:00Z',
+    discoveryNotes:
+      'Initial call surfaced estimating bottlenecks and downstream handoff delays; leadership prioritized measurable cycle-time reduction.',
+    clientReviewStartedAt: '2025-08-20T13:00:00Z',
+    clientReviewCompletedAt: '2025-08-24T17:00:00Z',
+    fieldSources: buildFieldSources(brief6FieldPaths, {
+      source: 'advisor',
+      confirmedByClient: true,
+      confirmedAt: '2025-08-24T17:00:00Z',
+    }),
+    clientNotes: {
+      'successCriteria.1': 'Please include setup handoff SLA in provider SOW language.',
+      'requirements.2': 'Training needs a dedicated session for finance approvals.',
+    },
+    lockedAt: '2025-08-26T09:00:00Z',
+    lockedBy: 'mock-advisor-001',
+    ownerId,
+    createdAt: '2025-08-10T09:00:00.000Z',
     updatedAt: '2026-01-30T17:15:00.000Z',
   },
 ];
