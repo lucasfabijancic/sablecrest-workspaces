@@ -15,6 +15,7 @@ import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
 import GuidedBriefReview from "./pages/briefs/GuidedBriefReview";
+import BriefDetail from "./pages/briefs/BriefDetail";
 import ClientOnboarding from "./pages/onboarding/ClientOnboarding";
 import ClientSetup from "./pages/admin/ClientSetup";
 import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
@@ -60,6 +61,7 @@ const App = () => (
                 <Route path="admin/briefs/create/:clientId" element={<AdminBriefCreator />} />
                 <Route path="client-onboarding" element={<ClientOnboarding />} />
                 <Route path="briefs/:id/review" element={<GuidedBriefReview />} />
+                <Route path="briefs/:id" element={<BriefDetail />} />
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="requests/new" element={<NewRequest />} />
                 <Route path="requests/:id" element={<RequestDetail />} />
