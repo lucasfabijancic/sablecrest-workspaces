@@ -15,6 +15,7 @@ import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
 import GuidedBriefReview from "./pages/briefs/GuidedBriefReview";
+import ClientOnboarding from "./pages/onboarding/ClientOnboarding";
 import ClientSetup from "./pages/admin/ClientSetup";
 import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
 import ClientsList from "./pages/admin/ClientsList";
@@ -28,10 +29,6 @@ import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences }
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-const ClientOnboarding = () => (
-  <div className="p-8 text-muted-foreground">Coming soon - Client Onboarding</div>
-);
 
 // Apply theme class before React renders to prevent flash
 const storedTheme = localStorage.getItem('theme');
@@ -61,7 +58,7 @@ const App = () => (
                 <Route path="admin/clients" element={<ClientsList />} />
                 <Route path="admin/briefs/create" element={<AdminBriefCreator />} />
                 <Route path="admin/briefs/create/:clientId" element={<AdminBriefCreator />} />
-                <Route path="onboarding" element={<ClientOnboarding />} />
+                <Route path="client-onboarding" element={<ClientOnboarding />} />
                 <Route path="briefs/:id/review" element={<GuidedBriefReview />} />
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="requests/new" element={<NewRequest />} />

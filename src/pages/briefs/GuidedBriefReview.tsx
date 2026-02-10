@@ -587,14 +587,16 @@ export default function GuidedBriefReview() {
       return;
     }
 
-    if (isOpsOrAdmin) {
-      navigate(`/briefs/${id}`, { replace: true });
-      return;
-    }
+    if (!isUiShellMode) {
+      if (isOpsOrAdmin) {
+        navigate(`/briefs/${id}`, { replace: true });
+        return;
+      }
 
-    if (!isClient) {
-      navigate('/dashboard', { replace: true });
-      return;
+      if (!isClient) {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
     }
 
     let isMounted = true;
