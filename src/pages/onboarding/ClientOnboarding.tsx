@@ -38,6 +38,7 @@ interface ReviewBrief {
 }
 
 const FALLBACK_ADVISOR_NAME = 'Your advisor';
+const ONBOARDING_SEEN_KEY_PREFIX = 'sablecrest_onboarding_seen_';
 
 const getFirstName = (user: ReturnType<typeof useAuth>['user']): string => {
   const metadata = user?.user_metadata as Record<string, unknown> | undefined;
@@ -146,6 +147,13 @@ export default function ClientOnboarding() {
           fieldsNeedingInput: countFieldsNeedingInput(brief.field_sources),
           advisorId: brief.advisor_id,
         }));
+
+        reviewBriefs.forEach((reviewBrief) => {
+          localStorage.setItem(
+            `${ONBOARDING_SEEN_KEY_PREFIX}${reviewBrief.id}`,
+            new Date().toISOString()
+          );
+        });
 
         const advisorIds = Array.from(
           new Set(
