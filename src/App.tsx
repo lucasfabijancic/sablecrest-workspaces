@@ -17,6 +17,7 @@ import NewBrief from "./pages/briefs/NewBrief";
 import ClientSetup from "./pages/admin/ClientSetup";
 import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
 import ClientsList from "./pages/admin/ClientsList";
+import DevNav from "./pages/admin/DevNav";
 import ProviderRegistry from "./pages/ProviderRegistry";
 import Scorecards from "./pages/Scorecards";
 import ShortlistCompare from "./pages/ShortlistCompare";
@@ -71,6 +72,7 @@ const App = () => (
                 <Route path="briefs" element={<BriefsList />} />
                 <Route path="briefs/new" element={<NewBrief />} />
                 <Route path="providers" element={<ProviderRegistry />} />
+                <Route path="dev" element={<DevNav />} />
                 <Route path="scorecards" element={<Scorecards />} />
                 <Route path="shortlists" element={<ShortlistCompare />} />
                 <Route path="shortlists/:id" element={<ShortlistCompare />} />

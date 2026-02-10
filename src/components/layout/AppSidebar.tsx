@@ -55,6 +55,7 @@ const internalNav = [
   { title: 'Briefs', url: '/briefs', icon: FileText },
   { title: 'Providers', url: '/providers', icon: Database },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
+  { title: 'Dev Nav', url: '/dev', icon: Layers },
 ];
 
 const providerNav = [
@@ -95,6 +96,9 @@ export function AppSidebar() {
         return internalNav;
     }
   };
+  
+  const navItems = getNavItems();
+  const finalNav = isUiShellMode ? navItems : navItems.filter((item) => item.url !== '/dev');
 
   const renderNavItem = (item: { title: string; url: string; icon: typeof LayoutDashboard }) => (
     <SidebarMenuItem key={item.title}>
@@ -185,7 +189,7 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {getNavItems().map(renderNavItem)}
+              {finalNav.map(renderNavItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
