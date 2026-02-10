@@ -33,7 +33,7 @@ const DEV_SECTIONS: DevSection[] = [
   {
     title: 'CLIENT PAGES',
     routes: [
-      { label: 'Client Onboarding', path: '/onboarding' },
+  { label: 'Client Onboarding', path: '/client-onboarding' },
       { label: 'Guided Brief Review (brief-002)', path: '/briefs/brief-002/review' },
       { label: 'Guided Brief Review (brief-001)', path: '/briefs/brief-001/review' },
     ],
