@@ -14,6 +14,7 @@ import RequestDetail from "./pages/RequestDetail";
 import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
+import GuidedBriefReview from "./pages/briefs/GuidedBriefReview";
 import ClientSetup from "./pages/admin/ClientSetup";
 import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
 import ClientsList from "./pages/admin/ClientsList";
@@ -30,10 +31,6 @@ const queryClient = new QueryClient();
 
 const ClientOnboarding = () => (
   <div className="p-8 text-muted-foreground">Coming soon - Client Onboarding</div>
-);
-
-const GuidedBriefReview = () => (
-  <div className="p-8 text-muted-foreground">Coming soon - Guided Brief Review</div>
 );
 
 // Apply theme class before React renders to prevent flash
