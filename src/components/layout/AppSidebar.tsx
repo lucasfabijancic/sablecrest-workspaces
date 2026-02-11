@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { 
   FileText, 
   Settings, 
@@ -71,11 +70,10 @@ const settingsNav = [
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const { currentWorkspace, workspaces, setCurrentWorkspace, isUiShellMode } = useAuth();
+  const { currentWorkspace, workspaces, setCurrentWorkspace, isUiShellMode, setDevRole, devRoleOverride } = useAuth();
   const isCollapsed = state === 'collapsed';
-  
-  // Dev mode role switcher
-  const [devRole, setDevRole] = useState<DevRole>('internal');
+
+  const devRoleLabel = devRoleOverride === 'client' ? 'buyer' : devRoleOverride === 'admin' ? 'internal' : 'internal';
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
@@ -86,7 +84,7 @@ export function AppSidebar() {
 
   // Get nav items based on role
   const getNavItems = () => {
-    switch (devRole) {
+    switch (devRoleLabel as DevRole) {
       case 'buyer':
         return buyerNav;
       case 'provider':
@@ -216,21 +214,21 @@ export function AppSidebar() {
               <div className="flex items-center justify-between px-3 py-2 bg-warning/8 border border-warning/15 text-left">
                 <div>
                   <p className="text-[8px] uppercase tracking-wider text-warning/60">Dev Mode</p>
-                  <p className="text-[11px] font-medium text-foreground capitalize">{devRole}</p>
+                  <p className="text-[11px] font-medium text-foreground capitalize">{devRoleLabel}</p>
                 </div>
                 <ChevronDown className="h-3 w-3 text-warning/60" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-44">
-              <DropdownMenuItem onClick={() => setDevRole('buyer')} className={cn("text-[12px]", devRole === 'buyer' && 'bg-accent')}>
+              <DropdownMenuItem onClick={() => setDevRole('buyer')} className={cn("text-[12px]", devRoleLabel === 'buyer' && 'bg-accent')}>
                 <UserCircle className="h-3.5 w-3.5 mr-2" />
                 Buyer
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDevRole('internal')} className={cn("text-[12px]", devRole === 'internal' && 'bg-accent')}>
+              <DropdownMenuItem onClick={() => setDevRole('internal')} className={cn("text-[12px]", devRoleLabel === 'internal' && 'bg-accent')}>
                 <Shield className="h-3.5 w-3.5 mr-2" />
                 Internal
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDevRole('provider')} className={cn("text-[12px]", devRole === 'provider' && 'bg-accent')}>
+              <DropdownMenuItem onClick={() => setDevRole('provider')} className={cn("text-[12px]", devRoleLabel === 'provider' && 'bg-accent')}>
                 <Building2 className="h-3.5 w-3.5 mr-2" />
                 Provider
               </DropdownMenuItem>
