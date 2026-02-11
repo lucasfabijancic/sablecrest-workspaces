@@ -105,3 +105,28 @@ export interface ProviderProfile {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Fields excluded from client-side matching and public display.
+ * internalNotes is for Sablecrest ops eyes only.
+ * Full ProviderProfile is used in admin/ops views.
+ * ProviderMatchView is used in matching algorithm output and buyer-facing displays.
+ */
+export type ProviderMatchView = Omit<ProviderProfile, 'internalNotes'>;
+
+/**
+ * Minimal provider info for list/card displays.
+ */
+export interface ProviderSummary {
+  id: string;
+  name: string;
+  tier: ProviderTier;
+  overallVerification: VerificationLevel;
+  description: string;
+  regions: string[];
+  aecSpecializations: string[];
+  typicalBudgetMin?: number;
+  typicalBudgetMax?: number;
+  capabilities: ProviderCapability[];
+  employeeCountRange: string;
+}
