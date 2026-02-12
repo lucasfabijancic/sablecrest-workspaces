@@ -55,6 +55,8 @@ const getVisibilityClass = (visibility: ProviderEvidence['visibility']) => {
       return 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300';
     case 'Sablecrest Only':
       return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300';
+    case 'By Request':
+      return 'bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300';
     default:
       return 'bg-muted text-muted-foreground';
   }

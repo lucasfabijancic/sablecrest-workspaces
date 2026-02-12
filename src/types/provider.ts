@@ -48,7 +48,7 @@ export interface ProviderEvidence {
   name: string;
   description?: string;
   fileUrl?: string;
-  visibility: 'Public' | 'NDA Required' | 'Sablecrest Only';
+  visibility: 'Public' | 'NDA Required' | 'Sablecrest Only' | 'By Request';
   verificationLevel: VerificationLevel;
   verifiedAt?: string;
   expiresAt?: string;
