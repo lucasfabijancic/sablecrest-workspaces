@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, Database, Filter, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,11 +48,6 @@ export default function ProviderRegistry() {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isOpsOrAdmin = hasRole(['admin', 'ops']);
-
-  if (!isOpsOrAdmin) {
-    navigate('/dashboard');
-    return null;
-  }
 
   const [tierFilter, setTierFilter] = useState<TierFilter>('All');
   const [search, setSearch] = useState('');
@@ -104,6 +99,16 @@ export default function ProviderRegistry() {
 
     return result;
   }, [regionFilter, search, sortBy, tierFilter]);
+
+  useEffect(() => {
+    if (!isOpsOrAdmin) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isOpsOrAdmin, navigate]);
+
+  if (!isOpsOrAdmin) {
+    return null;
+  }
 
   const openDossier = (provider: ProviderProfile) => {
     setSelectedProvider(provider);
