@@ -19,6 +19,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { assertUnreachable } from '@/lib/assertUnreachable';
 import { cn } from '@/lib/utils';
 
 interface ProviderDossierProps {
@@ -42,8 +43,12 @@ const getEvidenceIcon = (type: ProviderEvidence['type']) => {
     case 'SOW Sample':
     case 'Contract Template':
       return Briefcase;
-    default:
+    case 'Case Study':
+    case 'Reference Letter':
+    case 'Audit Report':
       return FileText;
+    default:
+      return assertUnreachable(type);
   }
 };
 
@@ -58,7 +63,7 @@ const getVisibilityClass = (visibility: ProviderEvidence['visibility']) => {
     case 'By Request':
       return 'bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300';
     default:
-      return 'bg-muted text-muted-foreground';
+      return assertUnreachable(visibility);
   }
 };
 
