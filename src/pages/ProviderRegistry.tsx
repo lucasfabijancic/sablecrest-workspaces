@@ -1,191 +1,253 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowUpDown, Database, Filter, Search } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { aecProviders } from '@/data/aecProviders';
+import type { ProviderProfile, ProviderTier } from '@/types/provider';
+import ProviderDossier from '@/components/providers/ProviderDossier';
+import TierBadge from '@/components/providers/TierBadge';
+import VerificationBadge from '@/components/providers/VerificationBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, Database, X, Loader2 } from 'lucide-react';
-import { TableSkeleton } from '@/components/ui/Skeletons';
-import { mockProviders, mockPitchbooks, type ProviderCardSummary, type ProviderPitchbook } from '@/data/mockProviders';
-import type { BudgetBand } from '@/types/database';
-import { ProvidersTable } from '@/components/providers/ProvidersTable';
-import { ProviderDossierOverlay } from '@/components/providers/ProviderDossierOverlay';
-import { CompareOverlay } from '@/components/providers/CompareOverlay';
+import { cn } from '@/lib/utils';
 
-const budgetOptions: BudgetBand[] = ['Under $10K', '$10K-$50K', '$50K-$150K', '$150K-$500K', 'Over $500K'];
-const verificationOptions = ['Verified', 'Pending', 'Incomplete'];
+type TierFilter = 'All' | 'Elite' | 'Verified' | 'Emerging';
+type SortOption = 'name' | 'tier' | 'budget';
+
+const TIER_FILTERS: TierFilter[] = ['All', 'Elite', 'Verified', 'Emerging'];
+
+const TIER_PRIORITY: Record<ProviderTier, number> = {
+  Elite: 4,
+  Verified: 3,
+  Emerging: 2,
+  Pending: 1,
+};
+
+const formatBudgetRange = (provider: ProviderProfile) => {
+  const min = provider.typicalBudgetMin;
+  const max = provider.typicalBudgetMax;
+
+  if (typeof min !== 'number' || typeof max !== 'number') return 'Budget: Not provided';
+  return `Budget: $${min.toLocaleString()}-$${max.toLocaleString()}`;
+};
+
+const getRegionSummary = (provider: ProviderProfile) => {
+  if (provider.regions.length === 0) return 'Regions: Not provided';
+
+  const preview = provider.regions.slice(0, 2);
+  const remaining = provider.regions.length - preview.length;
+  return `Regions: ${preview.join(', ')}${remaining > 0 ? ` +${remaining}` : ''}`;
+};
 
 export default function ProviderRegistry() {
-  const [providers] = useState<ProviderCardSummary[]>(mockProviders);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isOpsOrAdmin = hasRole(['admin', 'ops']);
+
+  if (!isOpsOrAdmin) {
+    navigate('/dashboard');
+    return null;
+  }
+
+  const [tierFilter, setTierFilter] = useState<TierFilter>('All');
   const [search, setSearch] = useState('');
-  const [budgetFilter, setBudgetFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<string>('all');
-  const [selectedProvider, setSelectedProvider] = useState<ProviderCardSummary | null>(null);
-  const [pitchbook, setPitchbook] = useState<ProviderPitchbook | null>(null);
-  const [compareList, setCompareList] = useState<string[]>([]);
-  const [showCompare, setShowCompare] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
 
-  // Simulate loading state
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const uniqueRegions = useMemo(
+    () => Array.from(new Set(aecProviders.flatMap((provider) => provider.regions))).sort((a, b) => a.localeCompare(b)),
+    []
+  );
 
-  const hasFilters = budgetFilter !== 'all' || verificationFilter !== 'all' || search !== '';
+  const filteredProviders = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-  const clearFilters = () => {
-    setSearch('');
-    setBudgetFilter('all');
-    setVerificationFilter('all');
-  };
+    const result = aecProviders
+      .filter((provider) => {
+        const matchesTier = tierFilter === 'All' ? true : provider.tier === tierFilter;
+        const matchesRegion = regionFilter === 'all' ? true : provider.regions.includes(regionFilter);
 
-  const filteredProviders = providers.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.capabilities?.some(c => c.toLowerCase().includes(search.toLowerCase()));
-    
-    const matchesBudget = budgetFilter === 'all' || p.budgetBand === budgetFilter;
-    const matchesVerification = verificationFilter === 'all' || p.verificationStatus === verificationFilter;
-    
-    return matchesSearch && matchesBudget && matchesVerification;
-  });
+        const matchesSearch =
+          query.length === 0
+            ? true
+            : provider.capabilities.some((capability) => {
+                if (capability.capability.toLowerCase().includes(query)) return true;
+                return capability.subcategories?.some((subcategory) => subcategory.toLowerCase().includes(query)) ?? false;
+              }) ||
+              provider.aecSpecializations.some((specialization) => specialization.toLowerCase().includes(query));
 
-  const openDossier = (provider: ProviderCardSummary) => {
+        return matchesTier && matchesRegion && matchesSearch;
+      })
+      .slice();
+
+    result.sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+
+      if (sortBy === 'tier') {
+        const tierDiff = TIER_PRIORITY[b.tier] - TIER_PRIORITY[a.tier];
+        if (tierDiff !== 0) return tierDiff;
+        return a.name.localeCompare(b.name);
+      }
+
+      const aMinBudget = typeof a.typicalBudgetMin === 'number' ? a.typicalBudgetMin : Number.MAX_SAFE_INTEGER;
+      const bMinBudget = typeof b.typicalBudgetMin === 'number' ? b.typicalBudgetMin : Number.MAX_SAFE_INTEGER;
+      if (aMinBudget !== bMinBudget) return aMinBudget - bMinBudget;
+      return a.name.localeCompare(b.name);
+    });
+
+    return result;
+  }, [regionFilter, search, sortBy, tierFilter]);
+
+  const openDossier = (provider: ProviderProfile) => {
     setSelectedProvider(provider);
-    const pb = mockPitchbooks[provider.id];
-    if (pb) {
-      setPitchbook(pb);
-    }
+    setIsDossierOpen(true);
   };
 
   const closeDossier = () => {
+    setIsDossierOpen(false);
     setSelectedProvider(null);
-    setPitchbook(null);
   };
-
-  const toggleCompare = (id: string) => {
-    setCompareList(prev => 
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id].slice(0, 4)
-    );
-  };
-
-  const compareProviders = providers.filter(p => compareList.includes(p.id));
 
   return (
     <div className="page-container">
-      <PageHeader 
-        title="Providers" 
-        description={`${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} curated by Sablecrest`}
+      <PageHeader
+        title="Provider Registry"
+        description={`${filteredProviders.length} provider${filteredProviders.length === 1 ? '' : 's'} in the Sablecrest network`}
         showBack
       />
 
-      {/* Filter Bar */}
-      <div className="filter-bar">
-        <div className="relative flex-1 max-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+      <div className="filter-bar flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+            <Filter className="h-3.5 w-3.5" />
+            Tier
+          </span>
+          {TIER_FILTERS.map((tier) => {
+            const isActive = tierFilter === tier;
+            return (
+              <button
+                key={tier}
+                type="button"
+                onClick={() => setTierFilter(tier)}
+                className={cn(
+                  'h-7 px-2.5 rounded-full border text-[11px] font-medium whitespace-nowrap transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-muted-foreground/40'
+                )}
+              >
+                {tier}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full sm:w-[250px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder="Search capabilities or specializations..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-[11px]"
+            onChange={(event) => setSearch(event.target.value)}
+            className="pl-9 h-9"
           />
         </div>
 
-        <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-          <SelectTrigger className="w-32 h-8 text-[11px]">
-            <SelectValue placeholder="Budget" />
+        <Select value={regionFilter} onValueChange={setRegionFilter}>
+          <SelectTrigger className="h-9 w-full sm:w-[220px]">
+            <SelectValue placeholder="Filter by region" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-[11px]">All budgets</SelectItem>
-            {budgetOptions.map(b => (
-              <SelectItem key={b} value={b} className="text-[11px]">{b}</SelectItem>
+            <SelectItem value="all">All Regions</SelectItem>
+            {uniqueRegions.map((region) => (
+              <SelectItem key={region} value={region}>
+                {region}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select value={verificationFilter} onValueChange={setVerificationFilter}>
-          <SelectTrigger className="w-32 h-8 text-[11px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[11px]">All status</SelectItem>
-            {verificationOptions.map(v => (
-              <SelectItem key={v} value={v} className="text-[11px]">{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 text-[10px]" onClick={clearFilters}>
-            <X className="h-3 w-3 mr-1" />
-            Clear
-          </Button>
-        )}
+        <div className="inline-flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            Sort
+          </span>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger className="h-9 w-full sm:w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Name A-Z</SelectItem>
+              <SelectItem value="tier">Tier (highest first)</SelectItem>
+              <SelectItem value="budget">Budget (lowest first)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="page-content p-0">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={6} columns={6} />
-          </div>
-        ) : filteredProviders.length === 0 ? (
+      <div className="page-content">
+        {filteredProviders.length === 0 ? (
           <EmptyState
             icon={Database}
-            title={hasFilters ? "No matching providers" : "No providers in registry"}
-            description={hasFilters ? "Try adjusting your filters." : "Providers will be added by the ops team."}
+            title="No providers match your filters."
+            description="Try broadening your search, tier, or region filters."
           />
         ) : (
-          <ProvidersTable
-            providers={filteredProviders}
-            compareList={compareList}
-            onToggleCompare={toggleCompare}
-            onOpenDossier={openDossier}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredProviders.map((provider) => {
+              const topCapabilities = provider.capabilities.slice(0, 4);
+              const extraCapabilities = provider.capabilities.length - topCapabilities.length;
+
+              return (
+                <Card key={provider.id} className="h-full">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <h3 className="text-base font-semibold leading-tight">{provider.name}</h3>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <TierBadge tier={provider.tier} size="sm" />
+                        <VerificationBadge level={provider.overallVerification} size="sm" showLabel={false} />
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground line-clamp-2">{provider.description}</p>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {topCapabilities.map((capability, index) => (
+                        <Badge key={`${provider.id}-cap-${index}`} variant="secondary" className="text-[10px]">
+                          {capability.capability}
+                        </Badge>
+                      ))}
+                      {extraCapabilities > 0 ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          +{extraCapabilities} more
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>{getRegionSummary(provider)}</p>
+                      <p>Employees: {provider.employeeCountRange}</p>
+                      <p>{formatBudgetRange(provider)}</p>
+                    </div>
+
+                    <Button variant="outline" className="w-full" onClick={() => openDossier(provider)}>
+                      View Dossier
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* Compare Tray */}
-      {compareList.length >= 2 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 flex items-center justify-between z-40">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-medium">Compare ({compareList.length})</span>
-            <div className="flex gap-1.5">
-              {compareList.map(id => {
-                const p = providers.find(prov => prov.id === id);
-                return p ? (
-                  <Badge key={id} variant="secondary" className="text-[10px] pr-1">
-                    {p.name}
-                    <button className="ml-1 hover:text-destructive" onClick={() => toggleCompare(id)}>
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </Badge>
-                ) : null;
-              })}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => setCompareList([])}>Clear</Button>
-            <Button size="sm" className="h-7 text-[10px]" onClick={() => setShowCompare(true)}>Compare Now</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Provider Dossier Overlay */}
-      <ProviderDossierOverlay
-        provider={selectedProvider}
-        pitchbook={pitchbook}
-        onClose={closeDossier}
-      />
-
-      {/* Compare Overlay */}
-      {showCompare && (
-        <CompareOverlay
-          providers={compareProviders}
-          onClose={() => setShowCompare(false)}
-        />
-      )}
+      <ProviderDossier provider={selectedProvider} isOpen={isDossierOpen} onClose={closeDossier} />
     </div>
   );
 }
