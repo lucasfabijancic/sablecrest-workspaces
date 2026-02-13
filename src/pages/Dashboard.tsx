@@ -7,6 +7,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockBriefs } from '@/data/mockBriefs';
 import type { BriefStatus, ImplementationBrief } from '@/types/brief';
+import BlurText from '@/components/reactbits/BlurText';
+import CountUp from '@/components/reactbits/CountUp';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -461,11 +463,17 @@ export default function Dashboard() {
           <section className="space-y-3">
             <h2 className="text-sm font-medium">Pipeline Summary</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {PIPELINE_STATUSES.map((status) => (
+              {PIPELINE_STATUSES.map((status, index) => (
                 <Card key={status}>
                   <CardContent className="py-4 space-y-2">
                     <StatusBadge status={status} variant="brief" />
-                    <p className="text-2xl font-semibold tabular-nums">{pipelineCounts[status]}</p>
+                    <CountUp
+                      from={0}
+                      to={pipelineCounts[status]}
+                      duration={0.8}
+                      delay={index * 0.2}
+                      className="text-2xl font-semibold tabular-nums"
+                    />
                   </CardContent>
                 </Card>
               ))}
@@ -582,7 +590,13 @@ export default function Dashboard() {
         {activeClientBrief ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">{activeClientName}</CardTitle>
+              <BlurText
+                text={activeClientName}
+                animateBy="words"
+                delay={80}
+                stepDuration={0.3}
+                className="text-xl font-semibold tracking-tight text-foreground"
+              />
               <CardDescription>{activeClientBrief.title}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
