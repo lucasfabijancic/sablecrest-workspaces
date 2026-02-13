@@ -1,22 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import type { ShortlistEntry } from '@/types/matching';
 import type { ProviderProfile } from '@/types/provider';
-import FitScoreCard from '@/components/matching/FitScoreCard';
 import TierBadge from '@/components/providers/TierBadge';
 import AnimatedList from '@/components/reactbits/AnimatedList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-type ClientPreference = 'Interested' | 'Not Interested' | 'Questions';
+export type ClientPreference = 'Interested' | 'Not Interested' | 'Questions';
 
 interface ClientShortlistViewProps {
   shortlist: ShortlistEntry[];
   providers: ProviderProfile[];
   onViewDossier: (providerId: string) => void;
   onSelectPreference: (providerId: string, preference: ClientPreference) => void;
+  selectedPreferences?: Record<string, ClientPreference>;
   projectTypeName?: string;
 }
 
@@ -42,10 +42,9 @@ export default function ClientShortlistView({
   providers,
   onViewDossier,
   onSelectPreference,
+  selectedPreferences = {},
   projectTypeName,
 }: ClientShortlistViewProps) {
-  const [selectedPreferences, setSelectedPreferences] = useState<Record<string, ClientPreference>>({});
-
   const providersById = useMemo(() => {
     return providers.reduce<Record<string, ProviderProfile>>((accumulator, provider) => {
       accumulator[provider.id] = provider;
@@ -71,11 +70,6 @@ export default function ClientShortlistView({
   const projectContext = projectTypeName ? `${projectTypeName} implementation` : 'implementation';
 
   const handlePreferenceSelect = (providerId: string, preference: ClientPreference) => {
-    setSelectedPreferences((previous) => ({
-      ...previous,
-      [providerId]: preference,
-    }));
-
     onSelectPreference(providerId, preference);
   };
 
@@ -153,8 +147,6 @@ export default function ClientShortlistView({
                       <TierBadge tier={provider.tier} size="md" />
                     </div>
                   </div>
-
-                  <FitScoreCard size="compact" score={entry.matchScore.overallScore} />
                 </div>
 
                 <div className="space-y-2">

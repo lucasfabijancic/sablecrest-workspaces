@@ -22,6 +22,7 @@ import type {
 } from '@/types/brief';
 import type { MatchScore, MatchingResult, ShortlistEntry } from '@/types/matching';
 import type { ProviderProfile } from '@/types/provider';
+import ClientShortlistView, { type ClientPreference } from '@/components/matching/ClientShortlistView';
 import MatchResults from '@/components/matching/MatchResults';
 import FitScoreCard from '@/components/matching/FitScoreCard';
 import ProviderDossier from '@/components/providers/ProviderDossier';
@@ -93,6 +94,8 @@ interface AuditRow {
 }
 
 const CLIENT_SHORTLIST_STATUSES: BriefStatus[] = ['Shortlisted', 'Selected', 'In Execution', 'Completed'];
+const SHORTLIST_META_KEY = '__shortlistEntries';
+const SHORTLIST_PREFERENCES_META_KEY = '__shortlistClientPreferences';
 
 const EMPTY_BUSINESS_CONTEXT: BusinessContext = {
   companyName: '',
@@ -391,6 +394,57 @@ const isMeaningfulValue = (value: unknown): boolean => {
 const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   count === 1 ? singular : plural;
 
+const toClientPreferenceMap = (value: unknown): Record<string, ClientPreference> => {
+  if (!isPlainObject(value)) return {};
+
+  const result: Record<string, ClientPreference> = {};
+
+  Object.entries(value).forEach(([providerId, preference]) => {
+    if (
+      preference === 'Interested' ||
+      preference === 'Not Interested' ||
+      preference === 'Questions'
+    ) {
+      result[providerId] = preference;
+    }
+  });
+
+  return result;
+};
+
+const toShortlistEntries = (value: unknown): ShortlistEntry[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((entry): entry is ShortlistEntry => {
+    if (!isPlainObject(entry)) return false;
+    if (typeof entry.id !== 'string' || typeof entry.providerId !== 'string') return false;
+    if (!isPlainObject(entry.matchScore)) return false;
+
+    return (
+      typeof entry.matchScore.providerId === 'string' &&
+      typeof entry.matchScore.briefId === 'string' &&
+      typeof entry.matchScore.overallScore === 'number'
+    );
+  });
+};
+
+const buildIntakeResponsesWithShortlist = (
+  currentResponses: Record<string, any> | undefined,
+  shortlist: ShortlistEntry[],
+  preferences: Record<string, ClientPreference>
+): Record<string, any> => {
+  const nextResponses: Record<string, any> = { ...(currentResponses ?? {}) };
+  nextResponses[SHORTLIST_META_KEY] = shortlist;
+
+  if (Object.keys(preferences).length > 0) {
+    nextResponses[SHORTLIST_PREFERENCES_META_KEY] = preferences;
+  } else {
+    delete nextResponses[SHORTLIST_PREFERENCES_META_KEY];
+  }
+
+  return nextResponses;
+};
+
 export default function BriefDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -412,6 +466,7 @@ export default function BriefDetail() {
   const [auditMode, setAuditMode] = useState<'all' | 'changes'>('all');
   const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
+  const [clientShortlistPreferences, setClientShortlistPreferences] = useState<Record<string, ClientPreference>>({});
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [selectedProviderForDossier, setSelectedProviderForDossier] = useState<ProviderProfile | null>(null);
   const [isDossierOpen, setIsDossierOpen] = useState(false);
@@ -531,24 +586,62 @@ export default function BriefDetail() {
   const intakeEntries = useMemo(() => {
     if (!brief) return [] as Array<{ id: string; label: string; value: unknown }>;
 
-    return Object.entries(brief.intakeResponses ?? {}).map(([questionId, value]) => {
-      const questionLabel =
-        projectType?.intakeQuestions.find((question) => question.id === questionId)?.question ?? questionId;
+    return Object.entries(brief.intakeResponses ?? {})
+      .filter(([questionId]) => !questionId.startsWith('__'))
+      .map(([questionId, value]) => {
+        const questionLabel =
+          projectType?.intakeQuestions.find((question) => question.id === questionId)?.question ?? questionId;
 
-      return {
-        id: questionId,
-        label: questionLabel,
-        value,
-      };
-    });
+        return {
+          id: questionId,
+          label: questionLabel,
+          value,
+        };
+      });
   }, [brief, projectType]);
 
   useEffect(() => {
     setMatchingResult(null);
-    setShortlist([]);
     setIsGeneratingMatches(false);
     setSelectedProviderForDossier(null);
     setIsDossierOpen(false);
+
+    if (!brief) {
+      setShortlist([]);
+      setClientShortlistPreferences({});
+      return;
+    }
+
+    const storedShortlist = toShortlistEntries(brief.intakeResponses?.[SHORTLIST_META_KEY]);
+    const storedPreferences = toClientPreferenceMap(
+      brief.intakeResponses?.[SHORTLIST_PREFERENCES_META_KEY]
+    );
+
+    if (storedShortlist.length > 0) {
+      setShortlist(storedShortlist);
+      setClientShortlistPreferences(storedPreferences);
+      return;
+    }
+
+    if (CLIENT_SHORTLIST_STATUSES.includes(brief.status)) {
+      const fallbackMatches = generateMatches(brief, aecProviders, { maxResults: 3 });
+      const generatedShortlist: ShortlistEntry[] = fallbackMatches.matches.map((match) => ({
+        id: `shortlist-${match.providerId}`,
+        briefId: brief.id,
+        providerId: match.providerId,
+        matchScore: match,
+        status: 'Proposed',
+        addedAt: brief.updatedAt,
+        addedBy: brief.advisorId ?? brief.ownerId,
+      }));
+
+      setShortlist(generatedShortlist);
+      setClientShortlistPreferences(storedPreferences);
+      return;
+    }
+
+    setShortlist([]);
+    setClientShortlistPreferences({});
   }, [brief?.id]);
 
   useEffect(() => {
@@ -926,6 +1019,40 @@ export default function BriefDetail() {
     await runMatchGeneration({ resetFirst: true });
   }, [runMatchGeneration]);
 
+  const persistShortlistMetadata = useCallback(
+    async (
+      nextShortlist: ShortlistEntry[],
+      nextPreferences: Record<string, ClientPreference>,
+      options?: { silentError?: boolean }
+    ) => {
+      if (!brief) return;
+
+      const nextIntakeResponses = buildIntakeResponsesWithShortlist(
+        brief.intakeResponses,
+        nextShortlist,
+        nextPreferences
+      );
+
+      applyLocalBriefUpdates({ intakeResponses: nextIntakeResponses });
+
+      if (isUiShellMode) return;
+
+      const { error } = await supabase
+        .from('implementation_briefs')
+        .update({ intake_responses: nextIntakeResponses })
+        .eq('id', brief.id);
+
+      if (error && !options?.silentError) {
+        toast({
+          title: 'Unable to persist shortlist changes',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    },
+    [applyLocalBriefUpdates, brief, isUiShellMode, toast]
+  );
+
   const handleAddToShortlist = useCallback(
     (providerId: string) => {
       if (!matchingResult) return;
@@ -957,18 +1084,63 @@ export default function BriefDetail() {
         addedBy: user?.id ?? 'system',
       };
 
-      setShortlist((previous) => [...previous, entry]);
+      const nextShortlist = [...shortlist, entry];
+      setShortlist(nextShortlist);
+      void persistShortlistMetadata(nextShortlist, clientShortlistPreferences, { silentError: true });
 
       toast({
         title: 'Provider added to shortlist.',
       });
     },
-    [brief?.id, matchingResult, shortlist, toast, user?.id]
+    [
+      brief?.id,
+      clientShortlistPreferences,
+      matchingResult,
+      persistShortlistMetadata,
+      shortlist,
+      toast,
+      user?.id,
+    ]
   );
 
-  const handleRemoveFromShortlist = useCallback((providerId: string) => {
-    setShortlist((previous) => previous.filter((entry) => entry.providerId !== providerId));
-  }, []);
+  const handleRemoveFromShortlist = useCallback(
+    (providerId: string) => {
+      const nextShortlist = shortlist.filter((entry) => entry.providerId !== providerId);
+      setShortlist(nextShortlist);
+      void persistShortlistMetadata(nextShortlist, clientShortlistPreferences, { silentError: true });
+    },
+    [clientShortlistPreferences, persistShortlistMetadata, shortlist]
+  );
+
+  const handleClientPreferenceSelect = useCallback(
+    (providerId: string, preference: ClientPreference) => {
+      const nextPreferences = {
+        ...clientShortlistPreferences,
+        [providerId]: preference,
+      };
+
+      const nextShortlist = shortlist.map((entry) =>
+        entry.providerId === providerId
+          ? {
+              ...entry,
+              status:
+                preference === 'Interested'
+                  ? 'Interested'
+                  : preference === 'Not Interested'
+                  ? 'Declined'
+                  : entry.status,
+              fitNotes: preference === 'Questions' ? 'Client has follow-up questions.' : entry.fitNotes,
+              responseAt: new Date().toISOString(),
+            }
+          : entry
+      );
+
+      setClientShortlistPreferences(nextPreferences);
+      setShortlist(nextShortlist);
+      void persistShortlistMetadata(nextShortlist, nextPreferences, { silentError: true });
+    },
+    [clientShortlistPreferences, persistShortlistMetadata, shortlist]
+  );
 
   const handleViewDossier = useCallback(
     (providerId: string) => {
@@ -997,7 +1169,7 @@ export default function BriefDetail() {
   }, [toast]);
 
   const handlePresentToClient = useCallback(async () => {
-    if (shortlist.length === 0) {
+    if (!brief || shortlist.length === 0) {
       toast({
         title: 'Shortlist is empty',
         description: 'Add at least one provider before presenting to the client.',
@@ -1006,12 +1178,30 @@ export default function BriefDetail() {
       return;
     }
 
-    await updateBriefStatus('presentShortlist', 'Shortlisted', {
-      successTitle: 'Shortlist presented',
-      successDescription: 'The curated shortlist is now visible to the client.',
-      nextTab: 'matches',
-    });
-  }, [shortlist.length, toast, updateBriefStatus]);
+    const nextIntakeResponses = buildIntakeResponsesWithShortlist(
+      brief.intakeResponses,
+      shortlist,
+      clientShortlistPreferences
+    );
+
+    const updated = await persistBriefUpdate(
+      'presentShortlist',
+      {
+        status: 'Shortlisted',
+        intake_responses: nextIntakeResponses,
+      },
+      {
+        status: 'Shortlisted',
+        intakeResponses: nextIntakeResponses,
+      },
+      'Shortlist presented',
+      'The curated shortlist is now visible to the client.'
+    );
+
+    if (updated) {
+      setActiveTab('matches');
+    }
+  }, [brief, clientShortlistPreferences, persistBriefUpdate, shortlist, toast]);
 
   const handleCloseDossier = useCallback(() => {
     setIsDossierOpen(false);
@@ -1858,54 +2048,39 @@ export default function BriefDetail() {
 
             {!isAdmin && showClientShortlistTab ? (
               <TabsContent value="shortlist" className="space-y-4 mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Curated Shortlist</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {isBeforeShortlistedStatus ? (
+                {isBeforeShortlistedStatus ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Curated Shortlist</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                       <p className="text-sm text-muted-foreground">
                         Your Sablecrest advisor is identifying the best providers for your needs. You will be notified
                         when your shortlist is ready.
                       </p>
-                    ) : shortlistMatches.length === 0 ? (
+                    </CardContent>
+                  </Card>
+                ) : shortlistMatches.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Curated Shortlist</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                       <p className="text-sm text-muted-foreground">
                         Your shortlist is being prepared. Please check back shortly.
                       </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {shortlistMatches.map(({ entry, provider }) => (
-                          <div key={entry.id} className="rounded-md border border-border p-4 space-y-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium">{provider.name}</p>
-                                <TierBadge tier={provider.tier} size="sm" />
-                              </div>
-                              <FitScoreCard score={entry.matchScore.overallScore} size="compact" />
-                            </div>
-
-                            <p className="text-sm text-muted-foreground">{entry.matchScore.explanation}</p>
-
-                            <div>
-                              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Strengths</p>
-                              <ul className="space-y-1">
-                                {entry.matchScore.strengths.map((strength, index) => (
-                                  <li key={`${entry.id}-strength-${index}`} className="text-sm">
-                                    • {strength}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-
-                            <Button size="sm" variant="outline" onClick={() => handleViewDossier(provider.id)}>
-                              View Details
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ClientShortlistView
+                    shortlist={shortlist}
+                    providers={aecProviders}
+                    onViewDossier={handleViewDossier}
+                    onSelectPreference={handleClientPreferenceSelect}
+                    selectedPreferences={clientShortlistPreferences}
+                    projectTypeName={projectType?.name}
+                  />
+                )}
               </TabsContent>
             ) : null}
           </Tabs>
