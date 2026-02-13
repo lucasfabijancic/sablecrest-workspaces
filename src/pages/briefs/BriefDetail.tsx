@@ -25,6 +25,7 @@ import type { ProviderProfile } from '@/types/provider';
 import ClientShortlistView, { type ClientPreference } from '@/components/matching/ClientShortlistView';
 import MatchResults from '@/components/matching/MatchResults';
 import FitScoreCard from '@/components/matching/FitScoreCard';
+import ShortlistComparison from '@/components/matching/ShortlistComparison';
 import ProviderDossier from '@/components/providers/ProviderDossier';
 import TierBadge from '@/components/providers/TierBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -71,6 +72,7 @@ type ActionKey =
   | 'markInExecution'
   | 'markCompleted'
   | 'presentShortlist'
+  | 'selectProvider'
   | 'delete';
 
 interface StatusUpdateOptions {
@@ -470,6 +472,8 @@ export default function BriefDetail() {
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [selectedProviderForDossier, setSelectedProviderForDossier] = useState<ProviderProfile | null>(null);
   const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [selectedProviderForSelection, setSelectedProviderForSelection] = useState<ProviderProfile | null>(null);
 
   const projectType = useMemo(() => {
     if (!brief) return null;
@@ -605,6 +609,8 @@ export default function BriefDetail() {
     setIsGeneratingMatches(false);
     setSelectedProviderForDossier(null);
     setIsDossierOpen(false);
+    setIsComparing(false);
+    setSelectedProviderForSelection(null);
 
     if (!brief) {
       setShortlist([]);
@@ -1107,6 +1113,9 @@ export default function BriefDetail() {
     (providerId: string) => {
       const nextShortlist = shortlist.filter((entry) => entry.providerId !== providerId);
       setShortlist(nextShortlist);
+      if (nextShortlist.length < 2) {
+        setIsComparing(false);
+      }
       void persistShortlistMetadata(nextShortlist, clientShortlistPreferences, { silentError: true });
     },
     [clientShortlistPreferences, persistShortlistMetadata, shortlist]
@@ -1162,11 +1171,95 @@ export default function BriefDetail() {
   );
 
   const handleCompareShortlist = useCallback(() => {
-    toast({
-      title: 'Compare Shortlist',
-      description: 'Shortlist comparison will be available in Phase 6.',
-    });
-  }, [toast]);
+    setIsComparing(true);
+  }, []);
+
+  const handleOpenSelectProvider = useCallback(
+    (providerId: string) => {
+      if (!isAdmin) return;
+      const provider = providerLookup[providerId];
+      if (!provider) {
+        toast({
+          title: 'Provider not found',
+          description: 'Unable to locate this provider in the shortlist.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setSelectedProviderForSelection(provider);
+    },
+    [isAdmin, providerLookup, toast]
+  );
+
+  const handleConfirmSelectProvider = useCallback(async () => {
+    if (!brief || !selectedProviderForSelection) return;
+
+    const selectedProviderId = selectedProviderForSelection.id;
+    const selectedProviderName = selectedProviderForSelection.name;
+    const selectedAt = new Date().toISOString();
+    const nextShortlist = shortlist.map((entry) =>
+      entry.providerId === selectedProviderId
+        ? {
+            ...entry,
+            status: 'Selected',
+            responseAt: selectedAt,
+          }
+        : entry
+    );
+
+    const nextIntakeResponses = buildIntakeResponsesWithShortlist(
+      brief.intakeResponses,
+      nextShortlist,
+      clientShortlistPreferences
+    );
+
+    const updated = await persistBriefUpdate(
+      'selectProvider',
+      {
+        status: 'Selected',
+        intake_responses: nextIntakeResponses,
+      },
+      {
+        status: 'Selected',
+        intakeResponses: nextIntakeResponses,
+      },
+      `${selectedProviderName} selected.`,
+      'The brief is now marked as selected.'
+    );
+
+    if (!updated) return;
+
+    setShortlist(nextShortlist);
+    setSelectedProviderForSelection(null);
+    setIsComparing(false);
+
+    if (!isUiShellMode) {
+      const { data, error } = await supabase
+        .from('implementation_briefs')
+        .select('*')
+        .eq('id', brief.id)
+        .maybeSingle();
+
+      if (error) {
+        toast({
+          title: 'Selection saved, refresh failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else if (data) {
+        setBrief(mapRowToBrief(data as BriefRow));
+      }
+    }
+  }, [
+    brief,
+    clientShortlistPreferences,
+    isUiShellMode,
+    persistBriefUpdate,
+    selectedProviderForSelection,
+    shortlist,
+    toast,
+  ]);
 
   const handlePresentToClient = useCallback(async () => {
     if (!brief || shortlist.length === 0) {
@@ -1990,11 +2083,14 @@ export default function BriefDetail() {
                             )}
 
                             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-                              {shortlist.length >= 2 ? (
-                                <Button size="sm" variant="outline" onClick={handleCompareShortlist}>
-                                  Compare Shortlist
-                                </Button>
-                              ) : null}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCompareShortlist}
+                                disabled={shortlist.length < 2}
+                              >
+                                Compare Shortlist
+                              </Button>
 
                               <Button
                                 size="sm"
@@ -2009,6 +2105,17 @@ export default function BriefDetail() {
                             </div>
                           </CardContent>
                         </Card>
+
+                        {isComparing ? (
+                          <ShortlistComparison
+                            shortlist={shortlist}
+                            providers={aecProviders}
+                            onSelectProvider={handleOpenSelectProvider}
+                            onRemoveFromShortlist={handleRemoveFromShortlist}
+                            onViewDossier={handleViewDossier}
+                            onClose={() => setIsComparing(false)}
+                          />
+                        ) : null}
                       </>
                     ) : null}
                   </>
@@ -2141,6 +2248,38 @@ export default function BriefDetail() {
           selectedProviderForDossier ? shortlistProviderIds.includes(selectedProviderForDossier.id) : false
         }
       />
+
+      <AlertDialog
+        open={Boolean(selectedProviderForSelection)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProviderForSelection(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Select {selectedProviderForSelection?.name ?? 'this provider'} for this brief?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will update the brief status to Selected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionInProgress === 'selectProvider'}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmSelectProvider}
+              disabled={actionInProgress === 'selectProvider'}
+            >
+              {actionInProgress === 'selectProvider' ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : null}
+              Confirm Selection
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
