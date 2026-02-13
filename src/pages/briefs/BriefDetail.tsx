@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { aecProjectTypes, type AECProjectType } from '@/data/aecProjectTypes';
+import { aecProviders } from '@/data/aecProviders';
 import { mockBriefs } from '@/data/mockBriefs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { generateMatches } from '@/lib/matching';
 import type {
   BriefConstraints,
   BriefRequirement,
@@ -18,6 +20,12 @@ import type {
   RiskFactor,
   SuccessCriterion,
 } from '@/types/brief';
+import type { MatchScore, MatchingResult, ShortlistEntry } from '@/types/matching';
+import type { ProviderProfile } from '@/types/provider';
+import MatchResults from '@/components/matching/MatchResults';
+import FitScoreCard from '@/components/matching/FitScoreCard';
+import ProviderDossier from '@/components/providers/ProviderDossier';
+import TierBadge from '@/components/providers/TierBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -61,6 +69,7 @@ type ActionKey =
   | 'generateMatches'
   | 'markInExecution'
   | 'markCompleted'
+  | 'presentShortlist'
   | 'delete';
 
 interface StatusUpdateOptions {
@@ -82,15 +91,6 @@ interface AuditRow {
   markedForClientInput: boolean;
   clientNote?: string;
 }
-
-const MATCH_READY_STATUSES: BriefStatus[] = [
-  'Locked',
-  'Matching',
-  'Shortlisted',
-  'Selected',
-  'In Execution',
-  'Completed',
-];
 
 const CLIENT_SHORTLIST_STATUSES: BriefStatus[] = ['Shortlisted', 'Selected', 'In Execution', 'Completed'];
 
@@ -410,21 +410,50 @@ export default function BriefDetail() {
   const [actionInProgress, setActionInProgress] = useState<ActionKey | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [auditMode, setAuditMode] = useState<'all' | 'changes'>('all');
+  const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
+  const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
+  const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
+  const [selectedProviderForDossier, setSelectedProviderForDossier] = useState<ProviderProfile | null>(null);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   const projectType = useMemo(() => {
     if (!brief) return null;
     return aecProjectTypes.find((candidate) => candidate.id === brief.projectTypeId) ?? null;
   }, [brief]);
 
-  const showClientShortlistTab = useMemo(() => {
-    if (!brief) return false;
-    return CLIENT_SHORTLIST_STATUSES.includes(brief.status);
+  const providerLookup = useMemo(() => {
+    return aecProviders.reduce<Record<string, ProviderProfile>>((accumulator, provider) => {
+      accumulator[provider.id] = provider;
+      return accumulator;
+    }, {});
+  }, []);
+
+  const isBeforeLockedStatus = useMemo(() => {
+    if (!brief) return true;
+
+    return ['Draft', 'Advisor Draft', 'Client Review', 'In Review'].includes(brief.status);
   }, [brief]);
 
-  const hasMatchesAccess = useMemo(() => {
-    if (!brief) return false;
-    return MATCH_READY_STATUSES.includes(brief.status);
+  const isBeforeShortlistedStatus = useMemo(() => {
+    if (!brief) return true;
+    return !CLIENT_SHORTLIST_STATUSES.includes(brief.status);
   }, [brief]);
+
+  const shortlistProviderIds = useMemo(() => shortlist.map((entry) => entry.providerId), [shortlist]);
+
+  const shortlistMatches = useMemo(() => {
+    return shortlist
+      .map((entry) => {
+        const provider = providerLookup[entry.providerId];
+        if (!provider) return null;
+        return { entry, provider };
+      })
+      .filter((value): value is { entry: ShortlistEntry; provider: ProviderProfile } => Boolean(value));
+  }, [providerLookup, shortlist]);
+
+  const showClientShortlistTab = useMemo(() => {
+    return !isAdmin;
+  }, [isAdmin]);
 
   const auditRows = useMemo<AuditRow[]>(() => {
     if (!brief || !isAdmin) return [];
@@ -513,6 +542,14 @@ export default function BriefDetail() {
       };
     });
   }, [brief, projectType]);
+
+  useEffect(() => {
+    setMatchingResult(null);
+    setShortlist([]);
+    setIsGeneratingMatches(false);
+    setSelectedProviderForDossier(null);
+    setIsDossierOpen(false);
+  }, [brief?.id]);
 
   useEffect(() => {
     if (!brief) return;
@@ -854,13 +891,132 @@ export default function BriefDetail() {
     });
   }, [updateBriefStatus]);
 
+  const runMatchGeneration = useCallback(
+    async (options: { resetFirst?: boolean } = {}) => {
+      if (!brief || !isAdmin) return;
+
+      if (options.resetFirst) {
+        setMatchingResult(null);
+      }
+
+      setIsGeneratingMatches(true);
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const result = generateMatches(brief, aecProviders);
+        setMatchingResult(result);
+      } catch (error: any) {
+        toast({
+          title: 'Matching failed',
+          description: error?.message ?? 'Unable to generate provider matches right now.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsGeneratingMatches(false);
+      }
+    },
+    [brief, isAdmin, toast]
+  );
+
   const handleGenerateMatches = useCallback(async () => {
-    await updateBriefStatus('generateMatches', 'Matching', {
-      successTitle: 'Matching started',
-      successDescription: 'Provider matching has been queued for this brief.',
+    await runMatchGeneration();
+  }, [runMatchGeneration]);
+
+  const handleRegenerateMatches = useCallback(async () => {
+    await runMatchGeneration({ resetFirst: true });
+  }, [runMatchGeneration]);
+
+  const handleAddToShortlist = useCallback(
+    (providerId: string) => {
+      if (!matchingResult) return;
+
+      if (shortlist.some((entry) => entry.providerId === providerId)) {
+        return;
+      }
+
+      const matchScore: MatchScore | undefined = matchingResult.matches.find(
+        (match) => match.providerId === providerId
+      );
+
+      if (!matchScore) {
+        toast({
+          title: 'Unable to add provider',
+          description: 'Match score data for this provider is unavailable.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const entry: ShortlistEntry = {
+        id: `shortlist-${providerId}-${Date.now()}`,
+        briefId: brief?.id ?? matchScore.briefId,
+        providerId,
+        matchScore,
+        status: 'Proposed',
+        addedAt: new Date().toISOString(),
+        addedBy: user?.id ?? 'system',
+      };
+
+      setShortlist((previous) => [...previous, entry]);
+
+      toast({
+        title: 'Provider added to shortlist.',
+      });
+    },
+    [brief?.id, matchingResult, shortlist, toast, user?.id]
+  );
+
+  const handleRemoveFromShortlist = useCallback((providerId: string) => {
+    setShortlist((previous) => previous.filter((entry) => entry.providerId !== providerId));
+  }, []);
+
+  const handleViewDossier = useCallback(
+    (providerId: string) => {
+      const provider = providerLookup[providerId];
+
+      if (!provider) {
+        toast({
+          title: 'Provider not found',
+          description: 'Unable to locate this provider dossier.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setSelectedProviderForDossier(provider);
+      setIsDossierOpen(true);
+    },
+    [providerLookup, toast]
+  );
+
+  const handleCompareShortlist = useCallback(() => {
+    toast({
+      title: 'Compare Shortlist',
+      description: 'Shortlist comparison will be available in Phase 6.',
+    });
+  }, [toast]);
+
+  const handlePresentToClient = useCallback(async () => {
+    if (shortlist.length === 0) {
+      toast({
+        title: 'Shortlist is empty',
+        description: 'Add at least one provider before presenting to the client.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    await updateBriefStatus('presentShortlist', 'Shortlisted', {
+      successTitle: 'Shortlist presented',
+      successDescription: 'The curated shortlist is now visible to the client.',
       nextTab: 'matches',
     });
-  }, [updateBriefStatus]);
+  }, [shortlist.length, toast, updateBriefStatus]);
+
+  const handleCloseDossier = useCallback(() => {
+    setIsDossierOpen(false);
+    setSelectedProviderForDossier(null);
+  }, []);
 
   const handleMarkInExecution = useCallback(async () => {
     await updateBriefStatus('markInExecution', 'In Execution', {
@@ -1544,31 +1700,129 @@ export default function BriefDetail() {
 
             {isAdmin ? (
               <TabsContent value="matches" className="space-y-4 mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Provider Matches</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {hasMatchesAccess ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          Matching and shortlist workflows are coming in Phase 5. This tab will show scored
-                          recommendations, advisor shortlist rationale, and engagement readiness.
-                        </p>
-                        {brief.status === 'Locked' ? (
-                          <Button size="sm" onClick={handleGenerateMatches} disabled={actionInProgress !== null}>
-                            {actionInProgress === 'generateMatches' ? (
-                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                            ) : null}
+                {/* Admin-only matching workflow. Route-level RoleRoute should also guard this path in production. */}
+                {isBeforeLockedStatus ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Provider Matches</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Lock the brief to generate provider matches. Matching requires all criteria to be finalized.
+                      </p>
+                      <Button size="sm" onClick={handleLockBrief} disabled={actionInProgress !== null}>
+                        {actionInProgress === 'lock' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                        Lock Brief
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {isGeneratingMatches ? (
+                      <Card>
+                        <CardContent className="py-8 flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Analyzing providers...
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
+                    {!isGeneratingMatches && !matchingResult ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Run Matching</CardTitle>
+                          <CardDescription>
+                            Analyzes {aecProviders.length} providers against your brief requirements.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button size="lg" onClick={handleGenerateMatches} disabled={actionInProgress !== null}>
                             Generate Matches
                           </Button>
-                        ) : null}
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
+                    {!isGeneratingMatches && matchingResult ? (
+                      <>
+                        <MatchResults
+                          matches={matchingResult.matches}
+                          providers={aecProviders}
+                          onAddToShortlist={handleAddToShortlist}
+                          onViewDossier={handleViewDossier}
+                          shortlistedIds={shortlistProviderIds}
+                          algorithmVersion={matchingResult.algorithmVersion}
+                          generatedAt={matchingResult.generatedAt}
+                          totalCandidatesEvaluated={matchingResult.totalCandidatesEvaluated}
+                          onRegenerate={handleRegenerateMatches}
+                        />
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Shortlist ({shortlist.length} providers)</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {shortlist.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                Add providers from the matches above to build your shortlist.
+                              </p>
+                            ) : (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {shortlistMatches.map(({ entry, provider }) => (
+                                  <div key={entry.id} className="rounded-md border border-border p-3 space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="space-y-1">
+                                        <p className="text-sm font-medium">{provider.name}</p>
+                                        <TierBadge tier={provider.tier} size="sm" />
+                                      </div>
+                                      <FitScoreCard score={entry.matchScore.overallScore} size="compact" />
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleViewDossier(provider.id)}
+                                      >
+                                        View Dossier
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleRemoveFromShortlist(provider.id)}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+                              {shortlist.length >= 2 ? (
+                                <Button size="sm" variant="outline" onClick={handleCompareShortlist}>
+                                  Compare Shortlist
+                                </Button>
+                              ) : null}
+
+                              <Button
+                                size="sm"
+                                onClick={handlePresentToClient}
+                                disabled={shortlist.length === 0 || actionInProgress !== null}
+                              >
+                                {actionInProgress === 'presentShortlist' ? (
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                ) : null}
+                                Present to Client
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Lock brief to generate matches.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                    ) : null}
+                  </>
+                )}
               </TabsContent>
             ) : null}
 
@@ -1608,10 +1862,48 @@ export default function BriefDetail() {
                   <CardHeader>
                     <CardTitle>Curated Shortlist</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Your advisor-curated shortlist will appear here, including provider rationale and recommendation notes.
-                    </p>
+                  <CardContent className="space-y-4">
+                    {isBeforeShortlistedStatus ? (
+                      <p className="text-sm text-muted-foreground">
+                        Your Sablecrest advisor is identifying the best providers for your needs. You will be notified
+                        when your shortlist is ready.
+                      </p>
+                    ) : shortlistMatches.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Your shortlist is being prepared. Please check back shortly.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {shortlistMatches.map(({ entry, provider }) => (
+                          <div key={entry.id} className="rounded-md border border-border p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">{provider.name}</p>
+                                <TierBadge tier={provider.tier} size="sm" />
+                              </div>
+                              <FitScoreCard score={entry.matchScore.overallScore} size="compact" />
+                            </div>
+
+                            <p className="text-sm text-muted-foreground">{entry.matchScore.explanation}</p>
+
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Strengths</p>
+                              <ul className="space-y-1">
+                                {entry.matchScore.strengths.map((strength, index) => (
+                                  <li key={`${entry.id}-strength-${index}`} className="text-sm">
+                                    • {strength}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <Button size="sm" variant="outline" onClick={() => handleViewDossier(provider.id)}>
+                              View Details
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1664,6 +1956,16 @@ export default function BriefDetail() {
           </aside>
         ) : null}
       </div>
+
+      <ProviderDossier
+        provider={selectedProviderForDossier}
+        isOpen={isDossierOpen}
+        onClose={handleCloseDossier}
+        onAddToShortlist={isAdmin ? handleAddToShortlist : undefined}
+        isShortlisted={
+          selectedProviderForDossier ? shortlistProviderIds.includes(selectedProviderForDossier.id) : false
+        }
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
