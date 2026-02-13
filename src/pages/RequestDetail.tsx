@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Loader2, Send, Upload, FileText, MessageSquare, ListChecks, Activity, Eye,
@@ -861,17 +860,24 @@ export default function RequestDetail() {
         )}
       </div>
 
-      {/* Pitchbook Sheet */}
-      <Sheet open={!!selectedPitchbook} onOpenChange={() => setSelectedPitchbook(null)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {selectedPitchbook && (
-            <>
-              <SheetHeader className="mb-6">
-                <SheetTitle className="text-base font-medium">
-                  {mockProviders.find(p => p.id === selectedPitchbook.providerId)?.name} Pitchbook
-                </SheetTitle>
-              </SheetHeader>
+      {/* Pitchbook Overlay */}
+      {selectedPitchbook ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Provider pitchbook">
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm dark:bg-black/65"
+            onClick={() => setSelectedPitchbook(null)}
+          />
+          <div className="absolute inset-3 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl sm:inset-6 lg:inset-8">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-base font-medium">
+                {mockProviders.find(p => p.id === selectedPitchbook.providerId)?.name} Pitchbook
+              </h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPitchbook(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
+            <div className="flex-1 overflow-y-auto p-6">
               <Tabs value={pitchbookTab} onValueChange={setPitchbookTab}>
                 <TabsList className="w-full justify-start overflow-x-auto mb-6">
                   {pitchbookTabs.map(tab => (
@@ -1039,61 +1045,72 @@ export default function RequestDetail() {
                   </div>
                 </TabsContent>
               </Tabs>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Compare Sheet */}
-      <Sheet open={showCompare} onOpenChange={setShowCompare}>
-        <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-base font-medium">Compare Providers</SheetTitle>
-          </SheetHeader>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Field</th>
-                  {compareProviders.map(id => {
-                    const p = mockProviders.find(p => p.id === id);
-                    return (
-                      <th key={id} className="text-left py-2 px-2 font-medium text-foreground min-w-[160px]">
-                        {p?.name}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: 'Budget Band', key: 'budgetBand' },
-                  { label: 'Timeline', key: 'typicalTimeline' },
-                  { label: 'Lead Time', key: 'leadTime' },
-                  { label: 'Delivery Model', key: 'deliveryModel' },
-                  { label: 'Engagement Type', key: 'engagementType' },
-                  { label: 'Risk Rating', key: 'riskRating' },
-                  { label: 'Risk Reason', key: 'riskReason' },
-                  { label: 'Proof Count', key: 'proofCount' },
-                  { label: 'References', key: 'referenceAvailability' },
-                ].map(row => (
-                  <tr key={row.key} className="border-b border-border">
-                    <td className="py-2 pr-4 text-muted-foreground">{row.label}</td>
-                    {compareProviders.map(id => {
-                      const p = mockProviders.find(p => p.id === id);
-                      return (
-                        <td key={id} className="py-2 px-2 text-foreground">
-                          {p ? String((p as any)[row.key]) : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      ) : null}
+
+      {/* Compare Overlay */}
+      {showCompare ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Compare providers">
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm dark:bg-black/65"
+            onClick={() => setShowCompare(false)}
+          />
+          <div className="absolute inset-3 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl sm:inset-6 lg:inset-8">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-base font-medium">Compare Providers</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowCompare(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Field</th>
+                      {compareProviders.map(id => {
+                        const p = mockProviders.find(p => p.id === id);
+                        return (
+                          <th key={id} className="text-left py-2 px-2 font-medium text-foreground min-w-[160px]">
+                            {p?.name}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Budget Band', key: 'budgetBand' },
+                      { label: 'Timeline', key: 'typicalTimeline' },
+                      { label: 'Lead Time', key: 'leadTime' },
+                      { label: 'Delivery Model', key: 'deliveryModel' },
+                      { label: 'Engagement Type', key: 'engagementType' },
+                      { label: 'Risk Rating', key: 'riskRating' },
+                      { label: 'Risk Reason', key: 'riskReason' },
+                      { label: 'Proof Count', key: 'proofCount' },
+                      { label: 'References', key: 'referenceAvailability' },
+                    ].map(row => (
+                      <tr key={row.key} className="border-b border-border">
+                        <td className="py-2 pr-4 text-muted-foreground">{row.label}</td>
+                        {compareProviders.map(id => {
+                          const p = mockProviders.find(p => p.id === id);
+                          return (
+                            <td key={id} className="py-2 px-2 text-foreground">
+                              {p ? String((p as any)[row.key]) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

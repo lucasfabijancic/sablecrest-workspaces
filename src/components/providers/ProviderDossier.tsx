@@ -1,23 +1,17 @@
+import { useEffect } from 'react';
 import {
   AlertTriangle,
   Briefcase,
   ExternalLink,
   FileText,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import type { ProviderEvidence, ProviderProfile } from '@/types/provider';
 import TierBadge from '@/components/providers/TierBadge';
 import VerificationBadge from '@/components/providers/VerificationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { assertUnreachable } from '@/lib/assertUnreachable';
 import { cn } from '@/lib/utils';
@@ -111,27 +105,58 @@ export default function ProviderDossier({
   onAddToShortlist,
   isShortlisted = false,
 }: ProviderDossierProps) {
+  useEffect(() => {
+    if (!isOpen || !provider) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose, provider]);
+
   if (!provider || !isOpen) {
     return null;
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-        <SheetHeader className="px-6 py-5 border-b border-border">
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`${provider.name} dossier`}>
+      <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm dark:bg-black/65"
+        onClick={onClose}
+      />
+      <div className="absolute inset-3 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl sm:inset-6 lg:inset-8">
+        <div className="border-b border-border px-6 py-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
-              <SheetTitle className="text-2xl leading-tight">{provider.name}</SheetTitle>
+              <h2 className="text-2xl font-semibold leading-tight">{provider.name}</h2>
               <div className="flex flex-wrap items-center gap-2">
                 <TierBadge tier={provider.tier} />
                 <VerificationBadge level={provider.overallVerification} />
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={onClose}
+              aria-label="Close dossier"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <SheetDescription>
+          <p className="mt-2 text-sm text-muted-foreground">
             Provider dossier with capabilities, delivery profile, evidence, and performance history.
-          </SheetDescription>
-        </SheetHeader>
+          </p>
+        </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <Tabs defaultValue="summary" className="w-full">
@@ -451,7 +476,7 @@ export default function ProviderDossier({
           </Tabs>
         </div>
 
-        <SheetFooter className="px-6 py-4 border-t border-border sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {onAddToShortlist ? (
               <Button
@@ -465,8 +490,8 @@ export default function ProviderDossier({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </div>
+    </div>
   );
 }

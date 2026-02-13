@@ -4,7 +4,6 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   ArrowLeft,
   Check,
@@ -311,21 +310,28 @@ export default function ShortlistCompare() {
         </div>
       </div>
 
-      {/* Pitchbook Drawer */}
-      <Sheet open={!!expandedProvider} onOpenChange={() => setExpandedProvider(null)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {expandedProvider && (
-            <>
-              <SheetHeader className="mb-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{expandedProvider.logo}</span>
-                  <div>
-                    <SheetTitle>{expandedProvider.name}</SheetTitle>
-                    <p className="text-sm text-muted-foreground mt-0.5">{expandedProvider.positioning}</p>
-                  </div>
+      {/* Pitchbook Overlay */}
+      {expandedProvider ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Provider pitchbook">
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm dark:bg-black/65"
+            onClick={() => setExpandedProvider(null)}
+          />
+          <div className="absolute inset-3 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl sm:inset-6 lg:inset-8">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{expandedProvider.logo}</span>
+                <div>
+                  <h2 className="text-base font-medium">{expandedProvider.name}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{expandedProvider.positioning}</p>
                 </div>
-              </SheetHeader>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedProvider(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
+            <div className="flex-1 overflow-y-auto p-6">
               <Tabs defaultValue="summary" className="w-full">
                 <TabsList className="w-full justify-start mb-6">
                   <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -443,10 +449,10 @@ export default function ShortlistCompare() {
                   Close
                 </Button>
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
