@@ -28,6 +28,7 @@ import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences } from "./pages/ProviderPortal";
 import NotFound from "./pages/NotFound";
+import RoleRoute from "@/components/auth/RoleRoute";
 
 const queryClient = new QueryClient();
 
@@ -55,10 +56,38 @@ const App = () => (
               <Route path="/" element={<AppLayout />}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
-                <Route path="admin/clients/new" element={<ClientSetup />} />
-                <Route path="admin/clients" element={<ClientsList />} />
-                <Route path="admin/briefs/create" element={<AdminBriefCreator />} />
-                <Route path="admin/briefs/create/:clientId" element={<AdminBriefCreator />} />
+                <Route
+                  path="admin/clients/new"
+                  element={
+                    <RoleRoute requiredRoles={['admin', 'ops']}>
+                      <ClientSetup />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="admin/clients"
+                  element={
+                    <RoleRoute requiredRoles={['admin', 'ops']}>
+                      <ClientsList />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="admin/briefs/create"
+                  element={
+                    <RoleRoute requiredRoles={['admin', 'ops']}>
+                      <AdminBriefCreator />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="admin/briefs/create/:clientId"
+                  element={
+                    <RoleRoute requiredRoles={['admin', 'ops']}>
+                      <AdminBriefCreator />
+                    </RoleRoute>
+                  }
+                />
                 <Route path="client-onboarding" element={<ClientOnboarding />} />
                 <Route path="briefs/:id/review" element={<GuidedBriefReview />} />
                 <Route path="briefs/:id" element={<BriefDetail />} />
@@ -67,7 +96,14 @@ const App = () => (
                 <Route path="requests/:id" element={<RequestDetail />} />
                 <Route path="briefs" element={<BriefsList />} />
                 <Route path="briefs/new" element={<NewBrief />} />
-                <Route path="providers" element={<ProviderRegistry />} />
+                <Route
+                  path="providers"
+                  element={
+                    <RoleRoute requiredRoles={['admin', 'ops']}>
+                      <ProviderRegistry />
+                    </RoleRoute>
+                  }
+                />
                 <Route path="dev" element={<DevNav />} />
                 <Route path="scorecards" element={<Scorecards />} />
                 <Route path="shortlists" element={<ShortlistCompare />} />

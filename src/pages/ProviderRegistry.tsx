@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { ArrowUpDown, Database, Filter, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { aecProviders } from '@/data/aecProviders';
@@ -45,9 +44,8 @@ const getRegionSummary = (provider: ProviderProfile) => {
 };
 
 export default function ProviderRegistry() {
-  const navigate = useNavigate();
   const { hasRole } = useAuth();
-  const isOpsOrAdmin = hasRole(['admin', 'ops']);
+  const canViewInternalData = hasRole(['admin', 'ops']);
 
   const [tierFilter, setTierFilter] = useState<TierFilter>('All');
   const [search, setSearch] = useState('');
@@ -99,16 +97,6 @@ export default function ProviderRegistry() {
 
     return result;
   }, [regionFilter, search, sortBy, tierFilter]);
-
-  useEffect(() => {
-    if (!isOpsOrAdmin) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [isOpsOrAdmin, navigate]);
-
-  if (!isOpsOrAdmin) {
-    return null;
-  }
 
   const openDossier = (provider: ProviderProfile) => {
     setSelectedProvider(provider);
@@ -252,7 +240,12 @@ export default function ProviderRegistry() {
         )}
       </div>
 
-      <ProviderDossier provider={selectedProvider} isOpen={isDossierOpen} onClose={closeDossier} />
+      <ProviderDossier
+        provider={selectedProvider}
+        isOpen={isDossierOpen}
+        onClose={closeDossier}
+        showInternalData={canViewInternalData}
+      />
     </div>
   );
 }
