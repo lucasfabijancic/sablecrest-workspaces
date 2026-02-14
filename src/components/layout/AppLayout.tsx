@@ -53,8 +53,8 @@ export function AppLayout() {
           new Date().toISOString()
         );
 
-        if (location.pathname !== '/onboarding') {
-          navigate('/onboarding', { replace: true });
+        if (location.pathname !== '/client-onboarding') {
+          navigate('/client-onboarding', { replace: true });
         }
       } catch {
         // Keep navigation uninterrupted if this lightweight check fails.

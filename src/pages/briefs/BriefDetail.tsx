@@ -510,6 +510,15 @@ export default function BriefDetail() {
       .filter((value): value is { entry: ShortlistEntry; provider: ProviderProfile } => Boolean(value));
   }, [providerLookup, shortlist]);
 
+  const selectedProviderMatchScore = useMemo(() => {
+    if (!selectedProviderForDossier) return undefined;
+
+    const shortlistEntry = shortlist.find((entry) => entry.providerId === selectedProviderForDossier.id);
+    if (shortlistEntry) return shortlistEntry.matchScore;
+
+    return matchingResult?.matches.find((match) => match.providerId === selectedProviderForDossier.id);
+  }, [matchingResult, selectedProviderForDossier, shortlist]);
+
   const showClientShortlistTab = useMemo(() => {
     return !isAdmin;
   }, [isAdmin]);
@@ -2244,6 +2253,8 @@ export default function BriefDetail() {
         isOpen={isDossierOpen}
         onClose={handleCloseDossier}
         onAddToShortlist={isAdmin ? handleAddToShortlist : undefined}
+        matchScore={selectedProviderMatchScore}
+        showInternalData={isAdmin}
         isShortlisted={
           selectedProviderForDossier ? shortlistProviderIds.includes(selectedProviderForDossier.id) : false
         }
