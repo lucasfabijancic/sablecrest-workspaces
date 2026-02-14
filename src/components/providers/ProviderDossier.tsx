@@ -2,12 +2,16 @@ import { useEffect } from 'react';
 import {
   AlertTriangle,
   Briefcase,
+  Check,
+  CheckCircle2,
   ExternalLink,
   FileText,
   ShieldCheck,
   X,
 } from 'lucide-react';
 import type { ProviderEvidence, ProviderProfile } from '@/types/provider';
+import type { MatchScore } from '@/types/matching';
+import FitScoreCard from '@/components/matching/FitScoreCard';
 import TierBadge from '@/components/providers/TierBadge';
 import VerificationBadge from '@/components/providers/VerificationBadge';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +26,8 @@ interface ProviderDossierProps {
   onClose: () => void;
   onAddToShortlist?: (providerId: string) => void;
   isShortlisted?: boolean;
+  matchScore?: MatchScore;
+  showInternalData?: boolean;
 }
 
 const formatCurrency = (value?: number) => {
@@ -104,6 +110,8 @@ export default function ProviderDossier({
   onClose,
   onAddToShortlist,
   isShortlisted = false,
+  matchScore,
+  showInternalData = true,
 }: ProviderDossierProps) {
   useEffect(() => {
     if (!isOpen || !provider) return;
@@ -170,6 +178,73 @@ export default function ProviderDossier({
             </TabsList>
 
             <TabsContent value="summary" className="space-y-5 mt-0">
+              {matchScore ? (
+                <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-4 dark:border-blue-900 dark:bg-blue-950/40">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Fit Assessment</h4>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,300px)_1fr]">
+                    <FitScoreCard score={matchScore.overallScore} breakdown={matchScore.breakdown} size="full" />
+
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Strengths</p>
+                        {matchScore.strengths.length > 0 ? (
+                          <ul className="mt-2 space-y-1.5">
+                            {matchScore.strengths.map((strength, index) => (
+                              <li key={`${strength}-${index}`} className="flex items-start gap-2 text-sm">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>{strength}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1 text-sm text-muted-foreground">No strengths captured.</p>
+                        )}
+                      </div>
+
+                      {showInternalData ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Risks</p>
+                          {matchScore.risks.length > 0 ? (
+                            <ul className="mt-2 space-y-1.5">
+                              {matchScore.risks.map((risk, index) => (
+                                <li key={`${risk}-${index}`} className="flex items-start gap-2 text-sm">
+                                  <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                  <span>{risk}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-1 text-sm text-muted-foreground">No notable risks flagged.</p>
+                          )}
+                        </div>
+                      ) : null}
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-md border border-blue-200/70 bg-white/70 p-3 dark:border-blue-900/60 dark:bg-blue-950/30">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimated Budget</p>
+                          <p className="mt-1 text-sm font-medium">
+                            {formatCurrency(matchScore.estimatedBudget.min)} - {formatCurrency(matchScore.estimatedBudget.max)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-md border border-blue-200/70 bg-white/70 p-3 dark:border-blue-900/60 dark:bg-blue-950/30">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimated Timeline</p>
+                          <p className="mt-1 text-sm font-medium">{matchScore.estimatedTimeline}</p>
+                        </div>
+
+                        {showInternalData ? (
+                          <div className="rounded-md border border-blue-200/70 bg-white/70 p-3 dark:border-blue-900/60 dark:bg-blue-950/30 sm:col-span-2">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Confidence</p>
+                            <p className="mt-1 text-sm font-medium">{Math.round(matchScore.confidence * 100)}%</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <p className="text-sm text-foreground leading-relaxed">{provider.description}</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -483,7 +558,14 @@ export default function ProviderDossier({
                 onClick={() => onAddToShortlist(provider.id)}
                 disabled={isShortlisted}
               >
-                {isShortlisted ? 'Already Shortlisted' : 'Add to Shortlist'}
+                {isShortlisted ? (
+                  <>
+                    <Check className="mr-1.5 h-4 w-4" />
+                    Already Shortlisted
+                  </>
+                ) : (
+                  'Add to Shortlist'
+                )}
               </Button>
             ) : null}
           </div>
