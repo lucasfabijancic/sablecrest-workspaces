@@ -1,605 +1,416 @@
-import { useCallback, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Json } from '@/integrations/supabase/types';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Save } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { useBriefAutoSave } from '@/hooks/useBriefAutoSave';
-import { BRIEF_STEPS, INITIAL_FORM_DATA, type BriefFormData } from '@/types/briefForm';
-import { ProjectTypeStep } from '@/components/briefs/steps/ProjectTypeStep';
-import { BusinessContextStep } from '@/components/briefs/steps/BusinessContextStep';
-import { RequirementsStep } from '@/components/briefs/steps/RequirementsStep';
-import { SuccessCriteriaStep, ConstraintsStep, ReviewStep } from '@/components/briefs/intake';
+import type { TimelineUrgency } from '@/types/database';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
-type ValidationErrors = Record<string, string>;
-type IntakeQuestion = (typeof aecProjectTypes)[number]['intakeQuestions'][number];
+interface ClientProfileAdvisorRow {
+  assigned_advisor_id: string | null;
+}
 
-const isQuestionAnswered = (question: IntakeQuestion, value: unknown) => {
-  switch (question.type) {
-    case 'multiselect':
-      return Array.isArray(value) && value.length > 0;
-    case 'number':
-      if (value === '' || value === null || value === undefined) return false;
-      if (typeof value === 'number') return !Number.isNaN(value);
-      if (typeof value === 'string') return value.trim().length > 0 && !Number.isNaN(Number(value));
-      return false;
-    case 'select':
-    case 'text':
-    case 'textarea':
-      return typeof value === 'string' && value.trim().length > 0;
+type UrgencyOption = 'Urgent' | 'Next quarter' | 'Next fiscal year' | 'Just exploring';
+
+interface RequestFormData {
+  projectTypeId: string;
+  otherProjectType: string;
+  whatNeed: string;
+  budgetMin: string;
+  budgetMax: string;
+  urgency: UrgencyOption | '';
+  additionalContext: string;
+}
+
+const URGENCY_OPTIONS: UrgencyOption[] = [
+  'Urgent',
+  'Next quarter',
+  'Next fiscal year',
+  'Just exploring',
+];
+
+const INITIAL_FORM_DATA: RequestFormData = {
+  projectTypeId: '',
+  otherProjectType: '',
+  whatNeed: '',
+  budgetMin: '',
+  budgetMax: '',
+  urgency: '',
+  additionalContext: '',
+};
+
+const parseOptionalNumber = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const parsed = Number(trimmed);
+  if (Number.isNaN(parsed) || parsed < 0) return undefined;
+  return Math.round(parsed);
+};
+
+const mapUrgencyToTimeline = (urgency: UrgencyOption | ''): TimelineUrgency => {
+  switch (urgency) {
+    case 'Urgent':
+      return 'Within 2 weeks';
+    case 'Next quarter':
+      return 'Within 3 months';
+    case 'Next fiscal year':
+      return 'Flexible';
+    case 'Just exploring':
+      return 'Flexible';
     default:
-      return Boolean(value);
+      return 'Flexible';
   }
 };
 
 export default function NewBrief() {
-  const { currentWorkspace, user, isUiShellMode } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { currentWorkspace, user, loading: authLoading, isOpsOrAdmin, isUiShellMode } = useAuth();
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<RequestFormData>(INITIAL_FORM_DATA);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  const [briefId, setBriefId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<BriefFormData>(INITIAL_FORM_DATA);
-  const [stepValidity, setStepValidity] = useState<Record<number, boolean>>({
-    1: false,
-    2: false,
-    3: true,
-    4: true,
-    5: true,
-    6: true,
-  });
 
   const selectedProjectType = useMemo(
-    () => aecProjectTypes.find((type) => type.id === formData.projectTypeId),
+    () => aecProjectTypes.find((projectType) => projectType.id === formData.projectTypeId),
     [formData.projectTypeId]
   );
-  const intakeQuestions = selectedProjectType?.intakeQuestions ?? [];
 
-  const updateFormData = useCallback((updates: Partial<BriefFormData>) => {
-    setFormData((prev) => ({ ...prev, ...updates }));
-  }, []);
+  useEffect(() => {
+    if (authLoading) return;
 
-  const clearValidationError = useCallback((fieldKey: string) => {
+    if (isOpsOrAdmin) {
+      navigate('/admin/briefs/create', { replace: true });
+    }
+  }, [authLoading, isOpsOrAdmin, navigate]);
+
+  const updateField = <K extends keyof RequestFormData>(field: K, value: RequestFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     setValidationErrors((prev) => {
-      if (!prev[fieldKey]) return prev;
+      if (!prev[field]) return prev;
       const next = { ...prev };
-      delete next[fieldKey];
+      delete next[field];
       return next;
     });
-  }, []);
+  };
 
-  const setCurrentStepValidity = useCallback(
-    (valid: boolean) => {
-      setStepValidity((prev) => ({ ...prev, [currentStep]: valid }));
-    },
-    [currentStep]
-  );
+  const validateForm = () => {
+    const nextErrors: Record<string, string> = {};
 
-  const isStepValid = useCallback(() => {
-    if (currentStep === 1) {
-      return Boolean(formData.projectTypeId);
+    if (!formData.projectTypeId) {
+      nextErrors.projectTypeId = 'Select a project type.';
     }
-    if (currentStep === 2) {
-      return (
-        formData.businessContext.companyName.trim().length > 0 &&
-        formData.businessContext.currentState.trim().length > 0 &&
-        formData.businessContext.desiredOutcome.trim().length > 0
-      );
+
+    if (formData.projectTypeId === 'other' && !formData.otherProjectType.trim()) {
+      nextErrors.otherProjectType = 'Describe the project type.';
     }
-    if (currentStep === 3) {
-      return intakeQuestions.every((question) => {
-        if (!question.required) return true;
-        return isQuestionAnswered(question, formData.intakeResponses[question.id]);
-      });
+
+    if (!formData.whatNeed.trim()) {
+      nextErrors.whatNeed = 'Tell your advisor what you need.';
     }
-    return true;
-  }, [currentStep, formData, intakeQuestions]);
 
-  const buildBriefTitle = useCallback(() => {
-    const projectLabel = selectedProjectType?.name || 'Implementation Brief';
-    const companyLabel = formData.businessContext.companyName.trim();
-    if (companyLabel) {
-      return `${companyLabel} — ${projectLabel}`;
+    if (!formData.urgency) {
+      nextErrors.urgency = 'Select how urgent this request is.';
     }
-    return projectLabel;
-  }, [formData.businessContext.companyName, selectedProjectType?.name]);
 
-  const buildBriefPayload = useCallback(
-    (status: 'Draft' | 'Locked') => ({
-      workspace_id: currentWorkspace?.id ?? '',
-      title: buildBriefTitle(),
-      project_type_id: formData.projectTypeId ?? '',
-      status,
-      business_context: JSON.parse(JSON.stringify(formData.businessContext)),
-      requirements: [] as Json[],
-      success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
-      constraints: JSON.parse(JSON.stringify(formData.constraints)),
-      risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
-      intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
-      locked_at: status === 'Locked' ? new Date().toISOString() : null,
-      locked_by: status === 'Locked' ? user?.id ?? null : null,
-      owner_id: user?.id ?? null,
-    }),
-    [buildBriefTitle, currentWorkspace?.id, formData, user?.id]
-  );
+    return nextErrors;
+  };
 
-  const getSubmissionTitle = useCallback(() => {
-    return selectedProjectType?.name || 'Untitled Brief';
-  }, [selectedProjectType?.name]);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  const upsertBrief = useCallback(
-    async (status: 'Draft' | 'Locked'): Promise<string | null> => {
-      if (!currentWorkspace || !user || !formData.projectTypeId) {
-        return null;
-      }
-
-      const payload = buildBriefPayload(status);
-      const { data, error } = briefId
-        ? await supabase
-            .from('implementation_briefs')
-            .update(payload)
-            .eq('id', briefId)
-            .select('id')
-            .single()
-        : await supabase
-            .from('implementation_briefs')
-            .insert(payload)
-            .select('id')
-            .single();
-
-      if (error) throw error;
-
-      if (data?.id) {
-        setBriefId(data.id);
-        return data.id;
-      }
-
-      return null;
-    },
-    [briefId, buildBriefPayload, currentWorkspace, formData.projectTypeId, user]
-  );
-
-  const autosaveSignature = useMemo(() => JSON.stringify(formData), [formData]);
-
-  const saveDraftSilently = useCallback(
-    async (): Promise<boolean> => {
-      if (isUiShellMode || !currentWorkspace || !user || !formData.projectTypeId) {
-        return false;
-      }
-
-      try {
-        const id = await upsertBrief('Draft');
-        return Boolean(id);
-      } catch {
-        return false;
-      }
-    },
-    [currentWorkspace, formData.projectTypeId, isUiShellMode, upsertBrief, user]
-  );
-
-  const { markSignatureAsSaved } = useBriefAutoSave({
-    enabled:
-      !loading &&
-      currentStep >= 2 &&
-      !isUiShellMode &&
-      Boolean(currentWorkspace && user && formData.projectTypeId),
-    signature: autosaveSignature,
-    onSave: saveDraftSilently,
-  });
-
-  const saveDraft = useCallback(async (): Promise<void> => {
-    if (isUiShellMode) {
-      toast({
-        title: 'Not available in UI shell mode',
-        description: 'Connect a workspace to save drafts.',
-      });
+    const nextErrors = validateForm();
+    if (Object.keys(nextErrors).length > 0) {
+      setValidationErrors(nextErrors);
       return;
     }
 
     if (!user || !currentWorkspace) {
       toast({
-        title: 'Missing workspace',
-        description: 'Please select a workspace first.',
+        title: 'Missing account context',
+        description: 'Please select a workspace and try again.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!formData.projectTypeId) {
-      setValidationErrors({ projectType: 'Select a project type to save a draft.' });
-      setCurrentStep(1);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload = {
-        workspace_id: currentWorkspace.id,
-        title: getSubmissionTitle(),
-        project_type_id: formData.projectTypeId,
-        status: 'Draft',
-        business_context: JSON.parse(JSON.stringify(formData.businessContext)),
-        requirements: [] as Json[],
-        success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
-        constraints: JSON.parse(JSON.stringify(formData.constraints)),
-        intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
-        risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
-        owner_id: user.id,
-      };
-
-      const { data, error } = briefId
-        ? await supabase
-            .from('implementation_briefs')
-            .update(payload)
-            .eq('id', briefId)
-            .select('id')
-            .single()
-        : await supabase
-            .from('implementation_briefs')
-            .insert(payload)
-            .select('id')
-            .single();
-
-      if (error) throw error;
-
-      if (data?.id) {
-        setBriefId(data.id);
-      }
-
-      markSignatureAsSaved(autosaveSignature);
-      toast({
-        title: 'Draft saved',
-        description: 'Your implementation brief draft has been saved.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save draft.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    autosaveSignature,
-    briefId,
-    currentWorkspace,
-    formData.businessContext,
-    formData.constraints,
-    formData.intakeResponses,
-    formData.projectTypeId,
-    formData.riskFactors,
-    formData.successCriteria,
-    getSubmissionTitle,
-    isUiShellMode,
-    markSignatureAsSaved,
-    toast,
-    user,
-  ]);
-
-  const submitBrief = useCallback(async (): Promise<void> => {
     if (isUiShellMode) {
       toast({
-        title: 'Not available in UI shell mode',
-        description: 'Connect a workspace to submit briefs.',
+        title: 'Request submitted',
+        description:
+          'UI shell mode is active. No data was persisted, but this flow works as expected.',
       });
-      return;
-    }
-
-    if (!user || !currentWorkspace) {
-      toast({
-        title: 'Missing workspace',
-        description: 'Please select a workspace first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.projectTypeId) {
-      setValidationErrors({ projectType: 'Select a project type before submitting.' });
-      setCurrentStep(1);
+      navigate('/dashboard');
       return;
     }
 
     setIsSubmitting(true);
+
     try {
-      const payload = {
-        workspace_id: currentWorkspace.id,
-        title: getSubmissionTitle(),
-        project_type_id: formData.projectTypeId,
-        status: 'In Review',
-        business_context: JSON.parse(JSON.stringify(formData.businessContext)),
-        requirements: [] as Json[],
-        success_criteria: JSON.parse(JSON.stringify(formData.successCriteria)),
-        constraints: JSON.parse(JSON.stringify(formData.constraints)),
-        intake_responses: JSON.parse(JSON.stringify(formData.intakeResponses)),
-        risk_factors: JSON.parse(JSON.stringify(formData.riskFactors)),
-        owner_id: user.id,
+      const { data: clientProfileRow, error: clientProfileError } = await supabase
+        .from('client_profiles')
+        .select('assigned_advisor_id')
+        .eq('workspace_id', currentWorkspace.id)
+        .maybeSingle();
+
+      if (clientProfileError) throw clientProfileError;
+
+      const assignedAdvisorId = (clientProfileRow as ClientProfileAdvisorRow | null)?.assigned_advisor_id ?? null;
+
+      if (!assignedAdvisorId) {
+        toast({
+          title: 'Advisor assignment missing',
+          description: 'Your workspace does not have an assigned advisor yet. Please contact Sablecrest support.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const budgetMin = parseOptionalNumber(formData.budgetMin);
+      const budgetMax = parseOptionalNumber(formData.budgetMax);
+      const timelineUrgency = mapUrgencyToTimeline(formData.urgency);
+      const projectTypeId = formData.projectTypeId === 'other' ? 'other' : formData.projectTypeId;
+      const projectTypeLabel =
+        formData.projectTypeId === 'other'
+          ? formData.otherProjectType.trim()
+          : selectedProjectType?.name ?? 'Implementation Project';
+
+      const businessContext = {
+        companyName: currentWorkspace.name,
+        companySize: '',
+        industry: '',
+        currentState: formData.additionalContext.trim(),
+        desiredOutcome: formData.whatNeed.trim(),
+        keyStakeholders: '',
+        decisionTimeline: formData.urgency,
       };
 
-      const { data, error } = briefId
-        ? await supabase
-            .from('implementation_briefs')
-            .update(payload)
-            .eq('id', briefId)
-            .select('id')
-            .single()
-        : await supabase
-            .from('implementation_briefs')
-            .insert(payload)
-            .select('id')
-            .single();
+      const constraints = {
+        budget: {
+          min: budgetMin,
+          max: budgetMax,
+          flexibility: 'Flexible' as const,
+        },
+        timeline: {
+          urgency: timelineUrgency,
+          reason: `Client requested timeline: ${formData.urgency}`,
+        },
+        sensitivity: {
+          level: 'Standard' as const,
+          concerns: [],
+        },
+        technical: {
+          mustIntegrate: [],
+          cannotChange: [],
+          preferences: [],
+        },
+      };
 
-      if (error) throw error;
+      const intakeResponses: Record<string, string> = {
+        requestSummary: formData.whatNeed.trim(),
+        requestedUrgency: formData.urgency,
+      };
 
-      const nextBriefId = data?.id ?? briefId;
-      if (nextBriefId) {
-        setBriefId(nextBriefId);
+      if (formData.projectTypeId === 'other' && formData.otherProjectType.trim()) {
+        intakeResponses.otherProjectType = formData.otherProjectType.trim();
       }
 
-      markSignatureAsSaved(autosaveSignature);
-      toast({
-        title: 'Brief submitted for review',
+      if (formData.additionalContext.trim()) {
+        intakeResponses.additionalContext = formData.additionalContext.trim();
+      }
+
+      const { error: insertError } = await supabase.from('implementation_briefs').insert({
+        workspace_id: currentWorkspace.id,
+        title: `${currentWorkspace.name} — ${projectTypeLabel}`,
+        project_type_id: projectTypeId,
+        status: 'Advisor Draft',
+        business_context: businessContext,
+        requirements: [],
+        success_criteria: [],
+        constraints,
+        risk_factors: [],
+        intake_responses: intakeResponses,
+        owner_id: user.id,
+        advisor_id: assignedAdvisorId,
       });
 
-      if (nextBriefId) {
-        navigate(`/briefs/${nextBriefId}`);
-      }
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Request submitted. Your Sablecrest advisor will reach out within 1 business day.',
+      });
+
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to submit brief.',
+        title: 'Unable to submit request',
+        description: error?.message ?? 'Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    autosaveSignature,
-    briefId,
-    currentWorkspace,
-    formData.businessContext,
-    formData.constraints,
-    formData.intakeResponses,
-    formData.projectTypeId,
-    formData.riskFactors,
-    formData.successCriteria,
-    getSubmissionTitle,
-    isUiShellMode,
-    markSignatureAsSaved,
-    navigate,
-    toast,
-    user,
-  ]);
-
-  const jumpToStep = useCallback((step: number) => {
-    setCurrentStep(step);
-  }, []);
-
-  const handleContinue = () => {
-    if (!isStepValid()) {
-      if (currentStep === 1) {
-        setValidationErrors({ projectType: 'Select a project type to continue.' });
-      } else if (currentStep === 2) {
-        setValidationErrors({
-          companyName: formData.businessContext.companyName.trim() ? '' : 'Company name is required.',
-          currentState: formData.businessContext.currentState.trim() ? '' : 'Describe the current state.',
-          desiredOutcome: formData.businessContext.desiredOutcome.trim() ? '' : 'Define the desired outcome.',
-        });
-      } else if (currentStep === 3) {
-        const nextErrors: ValidationErrors = {};
-        intakeQuestions.forEach((question) => {
-          if (question.required && !isQuestionAnswered(question, formData.intakeResponses[question.id])) {
-            nextErrors[question.id] = 'This field is required.';
-          }
-        });
-        setValidationErrors(nextErrors);
-      }
-      return;
-    }
-
-    setValidationErrors({});
-    setCurrentStep((prev) => Math.min(prev + 1, BRIEF_STEPS.length));
   };
 
-  const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
+  if (authLoading) {
+    return (
+      <div className="p-6 text-muted-foreground">Loading...</div>
+    );
+  }
+
+  if (isOpsOrAdmin) {
+    return null;
+  }
 
   if (!currentWorkspace) {
     return <div className="p-6 text-center text-muted-foreground">Please select a workspace first.</div>;
   }
 
-  const currentStepValid = stepValidity[currentStep] ?? true;
-
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-3xl mx-auto">
       <Link to="/briefs" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Back to briefs
       </Link>
 
-      <h1 className="text-xl font-semibold text-foreground mb-2">New Implementation Brief</h1>
-      <p className="text-muted-foreground mb-6">Create a new brief in {currentWorkspace.name}</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Request a New Implementation Brief</CardTitle>
+          <CardDescription>
+            Tell your Sablecrest advisor what you need, and they will build your brief.
+          </CardDescription>
+        </CardHeader>
 
-      <div className="flex items-center gap-4 mb-8">
-        {BRIEF_STEPS.map((step, index) => (
-          <div key={step.id} className="flex items-center">
-            <div
-              className={cn(
-                'flex items-center gap-2',
-                currentStep > step.id && 'text-success'
-              )}
-            >
-              <div
-                className={cn(
-                  'h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium',
-                  currentStep === step.id && 'bg-primary text-primary-foreground',
-                  currentStep > step.id && 'bg-success text-success-foreground',
-                  currentStep < step.id && 'bg-muted text-muted-foreground'
-                )}
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="projectType">What kind of project?</Label>
+              <Select
+                value={formData.projectTypeId || undefined}
+                onValueChange={(value) => updateField('projectTypeId', value)}
               >
-                {currentStep > step.id ? <Check className="h-3 w-3" /> : step.id}
-              </div>
-              <span
-                className={cn(
-                  'text-sm font-medium',
-                  currentStep === step.id && 'text-foreground',
-                  currentStep !== step.id && 'text-muted-foreground'
-                )}
-              >
-                {step.title}
-              </span>
+                <SelectTrigger id="projectType">
+                  <SelectValue placeholder="Select project type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aecProjectTypes.map((projectType) => (
+                    <SelectItem key={projectType.id} value={projectType.id}>
+                      {projectType.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {validationErrors.projectTypeId ? (
+                <p className="text-sm text-destructive">{validationErrors.projectTypeId}</p>
+              ) : null}
             </div>
-            {index < BRIEF_STEPS.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />}
-          </div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3">
-          <div className="bg-card border border-border rounded-lg p-6">
-            {currentStep === 1 && (
-              <ProjectTypeStep
-                formData={formData}
-                updateFormData={updateFormData}
-                isValid={currentStepValid}
-                setIsValid={setCurrentStepValidity}
-                projectTypeError={validationErrors.projectType}
-                clearProjectTypeError={() => clearValidationError('projectType')}
+            {formData.projectTypeId === 'other' ? (
+              <div className="space-y-2">
+                <Label htmlFor="otherProjectType">Describe the project type</Label>
+                <Textarea
+                  id="otherProjectType"
+                  rows={3}
+                  value={formData.otherProjectType}
+                  onChange={(event) => updateField('otherProjectType', event.target.value)}
+                  placeholder="Describe the type of implementation you need."
+                />
+                {validationErrors.otherProjectType ? (
+                  <p className="text-sm text-destructive">{validationErrors.otherProjectType}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="whatNeed">What do you need?</Label>
+              <Textarea
+                id="whatNeed"
+                rows={5}
+                value={formData.whatNeed}
+                onChange={(event) => updateField('whatNeed', event.target.value)}
+                placeholder="Describe what you are trying to accomplish. Your advisor will follow up with detailed questions."
               />
-            )}
+              {validationErrors.whatNeed ? (
+                <p className="text-sm text-destructive">{validationErrors.whatNeed}</p>
+              ) : null}
+            </div>
 
-            {currentStep === 2 && (
-              <BusinessContextStep
-                formData={formData}
-                updateFormData={updateFormData}
-                isValid={currentStepValid}
-                setIsValid={setCurrentStepValidity}
-                validationErrors={validationErrors}
-                clearValidationError={clearValidationError}
+            <div className="space-y-2">
+              <Label>Rough budget range (optional)</Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={formData.budgetMin}
+                  onChange={(event) => updateField('budgetMin', event.target.value)}
+                  placeholder="Minimum budget"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={formData.budgetMax}
+                  onChange={(event) => updateField('budgetMax', event.target.value)}
+                  placeholder="Maximum budget"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="urgency">How urgent is this?</Label>
+              <Select
+                value={formData.urgency || undefined}
+                onValueChange={(value) => updateField('urgency', value as UrgencyOption)}
+              >
+                <SelectTrigger id="urgency">
+                  <SelectValue placeholder="Select urgency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {URGENCY_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {validationErrors.urgency ? (
+                <p className="text-sm text-destructive">{validationErrors.urgency}</p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="additionalContext">Any additional context</Label>
+              <Textarea
+                id="additionalContext"
+                rows={4}
+                value={formData.additionalContext}
+                onChange={(event) => updateField('additionalContext', event.target.value)}
+                placeholder="Anything else your advisor should know before follow-up."
               />
-            )}
+            </div>
 
-            {currentStep === 3 && (
-              <RequirementsStep
-                formData={formData}
-                updateFormData={updateFormData}
-                isValid={currentStepValid}
-                setIsValid={setCurrentStepValidity}
-                validationErrors={validationErrors}
-                clearValidationError={clearValidationError}
-              />
-            )}
-
-            {currentStep === 4 && (
-              <SuccessCriteriaStep
-                formData={formData}
-                updateFormData={updateFormData}
-                isValid={currentStepValid}
-                setIsValid={setCurrentStepValidity}
-              />
-            )}
-
-            {currentStep === 5 && (
-              <ConstraintsStep
-                formData={formData}
-                updateFormData={updateFormData}
-                isValid={currentStepValid}
-                setIsValid={setCurrentStepValidity}
-              />
-            )}
-
-            {currentStep === 6 && (
-              <ReviewStep
-                formData={formData}
-                briefId={briefId}
-                onSaveDraft={saveDraft}
-                onSubmitBrief={submitBrief}
-                isSubmitting={isSubmitting}
-                onJumpToStep={jumpToStep}
-              />
-            )}
-
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-              <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1}>
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => navigate('/briefs')} disabled={isSubmitting}>
+                Cancel
               </Button>
-
-              <div className="flex items-center gap-3">
-                {currentStep >= 2 && currentStep < BRIEF_STEPS.length && (
-                  <Button variant="outline" onClick={saveDraft} disabled={loading || isSubmitting}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Draft
-                  </Button>
-                )}
-
-                {currentStep < BRIEF_STEPS.length && (
-                  <Button onClick={handleContinue} disabled={loading || isSubmitting || !currentStepValid}>
-                    Continue
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                )}
-              </div>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Submit Request
+              </Button>
             </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="bg-card border border-border rounded-lg p-6 sticky top-6">
-            <h3 className="text-sm font-medium text-muted-foreground mb-4">Preview</h3>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Project type</p>
-                <p className="text-sm font-medium text-foreground">{selectedProjectType?.name || 'Not selected'}</p>
-                {selectedProjectType && <p className="text-xs text-muted-foreground">{selectedProjectType.category}</p>}
-              </div>
-
-              <div className="border-t border-border pt-4 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Step</span>
-                  <span className="text-foreground">
-                    {currentStep} of {BRIEF_STEPS.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Context</span>
-                  <span className="text-foreground">
-                    {formData.businessContext.companyName ? 'Started' : 'Not started'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Requirements</span>
-                  <span className="text-foreground">
-                    {Object.keys(formData.intakeResponses).length > 0 ? 'In progress' : 'Not started'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Success criteria</span>
-                  <span className="text-foreground">
-                    {formData.successCriteria.length > 0 ? `${formData.successCriteria.length} defined` : 'Not started'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Constraints</span>
-                  <span className="text-foreground">
-                    {formData.constraints.timeline.urgency ? 'Started' : 'Not started'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
