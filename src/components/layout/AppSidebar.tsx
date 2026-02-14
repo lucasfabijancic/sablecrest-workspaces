@@ -3,11 +3,9 @@ import {
   Settings, 
   LayoutDashboard, 
   ChevronsUpDown,
-  Database,
   Users,
   UserCircle,
   Shield,
-  Scale,
   Layers,
   Building2,
   ChevronDown,
@@ -52,19 +50,15 @@ const internalNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Clients', url: '/admin/clients', icon: Users },
   { title: 'Briefs', url: '/briefs', icon: FileText },
-  { title: 'Providers', url: '/providers', icon: Database },
+  { title: 'Providers', url: '/providers', icon: Building2 },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
-  { title: 'Dev Nav', url: '/dev', icon: Layers },
+  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 const providerNav = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Opportunities', url: '/provider-portal/opportunities', icon: FileText },
   { title: 'Profile', url: '/provider-portal/profile', icon: UserCircle },
-];
-
-const settingsNav = [
-  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -77,8 +71,8 @@ export function AppSidebar() {
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
+    if (url === '/briefs') return location.pathname === '/briefs' || location.pathname.startsWith('/briefs/');
     if (url.startsWith('/admin/')) return location.pathname === url || location.pathname.startsWith(`${url}/`);
-    if (url === '/shortlists') return location.pathname.startsWith('/shortlists');
     return location.pathname.startsWith(url);
   };
 
@@ -96,7 +90,9 @@ export function AppSidebar() {
   };
   
   const navItems = getNavItems();
-  const finalNav = isUiShellMode ? navItems : navItems.filter((item) => item.url !== '/dev');
+  const finalNav = isUiShellMode && devRoleLabel === 'internal'
+    ? [...navItems, { title: 'Dev Nav', url: '/dev', icon: Layers }]
+    : navItems;
 
   const renderNavItem = (item: { title: string; url: string; icon: typeof LayoutDashboard }) => (
     <SidebarMenuItem key={item.title}>
@@ -192,18 +188,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[9px] text-sidebar-foreground px-2 mb-1.5 uppercase tracking-wider">
-              Account
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {settingsNav.map(renderNavItem)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-3">
