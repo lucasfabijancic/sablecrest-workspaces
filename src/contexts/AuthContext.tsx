@@ -20,6 +20,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isUiShellMode: boolean;
   devRoleOverride: AppRole | null;
+  devPersona: 'buyer' | 'internal' | 'provider' | null;
   setDevRole: (role: 'buyer' | 'internal' | 'provider') => void;
 }
 
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [devRoleOverride, setDevRoleOverride] = useState<AppRole | null>(null);
+  const [devPersona, setDevPersona] = useState<'buyer' | 'internal' | 'provider' | null>(null);
 
   // UI Shell Mode: when user is logged in but has no workspaces, or when no user
   // This allows navigation for UI development purposes
@@ -52,11 +54,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setDevRole = (role: 'buyer' | 'internal' | 'provider') => {
     if (!isUiShellMode) return;
-    const roleMap: Record<string, AppRole> = {
+    const roleMap: Record<'buyer' | 'internal' | 'provider', AppRole> = {
       buyer: 'client',
       internal: 'admin',
       provider: 'client', // provider portal uses client-level access for now
     };
+    setDevPersona(role);
     setDevRoleOverride(roleMap[role] ?? 'admin');
   };
 
@@ -169,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         isUiShellMode,
         devRoleOverride,
+        devPersona,
         setDevRole,
       }}
     >

@@ -64,10 +64,10 @@ const providerNav = [
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const { currentWorkspace, workspaces, setCurrentWorkspace, isUiShellMode, setDevRole, devRoleOverride } = useAuth();
+  const { currentWorkspace, workspaces, setCurrentWorkspace, isUiShellMode, setDevRole, devPersona } = useAuth();
   const isCollapsed = state === 'collapsed';
 
-  const devRoleLabel = devRoleOverride === 'client' ? 'buyer' : devRoleOverride === 'admin' ? 'internal' : 'internal';
+  const devRoleLabel: DevRole = devPersona ?? 'internal';
 
   const isActive = (url: string) => {
     if (url === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
@@ -78,19 +78,18 @@ export function AppSidebar() {
 
   // Get nav items based on role
   const getNavItems = () => {
-    switch (devRoleLabel as DevRole) {
+    switch (devPersona) {
       case 'buyer':
         return buyerNav;
       case 'provider':
         return providerNav;
-      case 'internal':
       default:
         return internalNav;
     }
   };
   
   const navItems = getNavItems();
-  const finalNav = isUiShellMode && devRoleLabel === 'internal'
+  const finalNav = isUiShellMode && (devPersona === 'internal' || devPersona === null)
     ? [...navItems, { title: 'Dev Nav', url: '/dev', icon: Layers }]
     : navItems;
 
