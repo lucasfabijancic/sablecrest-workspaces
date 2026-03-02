@@ -49,11 +49,10 @@ const CLIENT_STATUS_PRIORITY: Record<BriefStatus, number> = {
   'Client Review': 1,
   'In Review': 2,
   Locked: 3,
-  Matching: 4,
-  Shortlisted: 5,
-  Selected: 6,
-  'In Execution': 7,
-  Completed: 8,
+  Shortlisted: 4,
+  Selected: 5,
+  'In Execution': 6,
+  Completed: 7,
   Cancelled: 98,
 };
 
@@ -113,7 +112,6 @@ const getClientNextStep = (brief: DashboardBrief): { description: string; ctaLab
         description: 'Your advisor is reviewing your updates. No action needed right now.',
       };
     case 'Locked':
-    case 'Matching':
       return {
         description: 'Provider matching is in progress. Your advisor will share recommendations shortly.',
       };

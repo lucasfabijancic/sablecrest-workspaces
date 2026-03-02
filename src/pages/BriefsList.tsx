@@ -64,7 +64,7 @@ const CLIENT_STATUS_FILTERS: ClientStatusFilter[] = [
   'Completed',
 ];
 
-const IN_PROGRESS_CLIENT_STATUSES: BriefStatus[] = ['Locked', 'Matching', 'Shortlisted'];
+const IN_PROGRESS_CLIENT_STATUSES: BriefStatus[] = ['Locked', 'Shortlisted'];
 
 const EMPTY_BUSINESS_CONTEXT: BusinessContext = {
   companyName: '',

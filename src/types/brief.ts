@@ -6,7 +6,6 @@ export type BriefStatus =
   | 'Client Review'
   | 'In Review'
   | 'Locked'
-  | 'Matching'
   | 'Shortlisted'
   | 'Selected'
   | 'In Execution'
@@ -113,7 +112,6 @@ export const BRIEF_STATUS_ORDER: BriefStatus[] = [
   'Client Review',
   'In Review',
   'Locked',
-  'Matching',
   'Shortlisted',
   'Selected',
   'In Execution',

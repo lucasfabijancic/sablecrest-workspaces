@@ -1350,7 +1350,6 @@ export default function BriefDetail() {
       case 'In Review':
         return 'Your advisor is reviewing your brief.';
       case 'Locked':
-      case 'Matching':
         return 'Your advisor is matching providers.';
       case 'Shortlisted':
         return 'Your shortlist is ready to review.';
@@ -1434,7 +1433,6 @@ export default function BriefDetail() {
           </>
         );
 
-      case 'Matching':
       case 'Shortlisted':
         return (
           <Button size="sm" variant="outline" onClick={() => setActiveTab('matches')} disabled={actionInProgress !== null}>

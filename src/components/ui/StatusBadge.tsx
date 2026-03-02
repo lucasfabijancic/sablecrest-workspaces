@@ -46,7 +46,6 @@ const briefStatusStyles: Record<BriefStatus, string> = {
   'Client Review': 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300',
   'In Review': 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
   'Locked': 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
-  'Matching': 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
   'Shortlisted': 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300',
   'Selected': 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
   'In Execution': 'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300',
