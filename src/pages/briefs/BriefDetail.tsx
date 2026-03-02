@@ -96,6 +96,7 @@ interface AuditRow {
 }
 
 const CLIENT_SHORTLIST_STATUSES: BriefStatus[] = ['Shortlisted', 'Selected', 'In Execution', 'Completed'];
+const MATCHING_RESULT_META_KEY = '__matchingResult';
 const SHORTLIST_META_KEY = '__shortlistEntries';
 const SHORTLIST_PREFERENCES_META_KEY = '__shortlistClientPreferences';
 
@@ -430,6 +431,37 @@ const toShortlistEntries = (value: unknown): ShortlistEntry[] => {
   });
 };
 
+const toMatchingResult = (value: unknown): MatchingResult | null => {
+  if (!isPlainObject(value)) return null;
+  if (typeof value.briefId !== 'string') return null;
+  if (!Array.isArray(value.matches)) return null;
+  if (typeof value.totalCandidatesEvaluated !== 'number') return null;
+  if (typeof value.algorithmVersion !== 'string') return null;
+  if (typeof value.generatedAt !== 'string') return null;
+
+  const hasValidMatches = value.matches.every((match) => {
+    if (!isPlainObject(match)) return false;
+    return (
+      typeof match.providerId === 'string' &&
+      typeof match.briefId === 'string' &&
+      typeof match.overallScore === 'number'
+    );
+  });
+
+  if (!hasValidMatches) return null;
+
+  return value as MatchingResult;
+};
+
+const buildIntakeResponsesWithMatchingResult = (
+  currentResponses: Record<string, any> | undefined,
+  result: MatchingResult
+): Record<string, any> => {
+  const nextResponses: Record<string, any> = { ...(currentResponses ?? {}) };
+  nextResponses[MATCHING_RESULT_META_KEY] = result;
+  return nextResponses;
+};
+
 const buildIntakeResponsesWithShortlist = (
   currentResponses: Record<string, any> | undefined,
   shortlist: ShortlistEntry[],
@@ -625,6 +657,13 @@ export default function BriefDetail() {
       setShortlist([]);
       setClientShortlistPreferences({});
       return;
+    }
+
+    const storedMatchingResult = toMatchingResult(
+      brief.intakeResponses?.[MATCHING_RESULT_META_KEY]
+    );
+    if (storedMatchingResult) {
+      setMatchingResult(storedMatchingResult);
     }
 
     const storedShortlist = toShortlistEntries(brief.intakeResponses?.[SHORTLIST_META_KEY]);
@@ -999,6 +1038,35 @@ export default function BriefDetail() {
     });
   }, [updateBriefStatus]);
 
+  const persistMatchingResultMetadata = useCallback(
+    async (result: MatchingResult, options?: { silentError?: boolean }) => {
+      if (!brief) return;
+
+      const nextIntakeResponses = buildIntakeResponsesWithMatchingResult(
+        brief.intakeResponses,
+        result
+      );
+
+      applyLocalBriefUpdates({ intakeResponses: nextIntakeResponses });
+
+      if (isUiShellMode) return;
+
+      const { error } = await supabase
+        .from('implementation_briefs')
+        .update({ intake_responses: nextIntakeResponses })
+        .eq('id', brief.id);
+
+      if (error && !options?.silentError) {
+        toast({
+          title: 'Unable to persist match results',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    },
+    [applyLocalBriefUpdates, brief, isUiShellMode, toast]
+  );
+
   const runMatchGeneration = useCallback(
     async (options: { resetFirst?: boolean } = {}) => {
       if (!brief || !isAdmin) return;
@@ -1013,6 +1081,7 @@ export default function BriefDetail() {
         await new Promise((resolve) => setTimeout(resolve, 800));
         const result = generateMatches(brief, aecProviders);
         setMatchingResult(result);
+        void persistMatchingResultMetadata(result, { silentError: true });
       } catch (error: any) {
         toast({
           title: 'Matching failed',
@@ -1023,7 +1092,7 @@ export default function BriefDetail() {
         setIsGeneratingMatches(false);
       }
     },
-    [brief, isAdmin, toast]
+    [brief, isAdmin, persistMatchingResultMetadata, toast]
   );
 
   const handleGenerateMatches = useCallback(async () => {
