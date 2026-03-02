@@ -99,6 +99,9 @@ const brief003Paths = buildFieldPaths(BIM_INTAKE_IDS, 3, 3);
 const brief004Paths = buildFieldPaths(INTEGRATION_INTAKE_IDS, 2, 2);
 const brief005Paths = buildFieldPaths(AI_INTAKE_IDS, 3, 2);
 const brief006Paths = buildFieldPaths(ESTIMATING_INTAKE_IDS, 3, 3);
+const brief007Paths = buildFieldPaths(INTEGRATION_INTAKE_IDS, 3, 3);
+const brief008Paths = buildFieldPaths(ERP_INTAKE_IDS, 3, 2);
+const brief009Paths = buildFieldPaths(PM_INTAKE_IDS, 2, 1);
 
 export const mockBriefs: ImplementationBrief[] = [
   {
@@ -934,6 +937,417 @@ export const mockBriefs: ImplementationBrief[] = [
     ownerId,
     createdAt: '2025-12-11T09:00:00Z',
     updatedAt: '2026-02-09T10:30:00Z',
+  },
+  {
+    id: 'brief-007',
+    workspaceId,
+    title: 'Enterprise Integration Stabilization Program',
+    projectTypeId: 'system-integration',
+    status: 'Selected',
+    currentVersion: 7,
+    businessContext: buildBusinessContext({
+      companyName: 'Canyon Ridge Infrastructure',
+      companySize: '410 employees',
+      industry: 'Civil & Infrastructure',
+      currentState:
+        'ERP, PM, and document-control data are synchronized through a fragile nightly process that breaks during month-end close.',
+      desiredOutcome:
+        'Establish resilient event-driven integrations for commitments, invoices, and cost forecasting with clear data ownership.',
+      keyStakeholders:
+        'CIO, Controller, Director of Project Controls, PMO Lead, Integration Architect',
+      decisionTimeline: 'Within 1 month',
+    }),
+    requirements: [
+      {
+        id: 'brief-007-req-1',
+        category: 'Integration',
+        priority: 'Must Have',
+        description: 'Deliver event-driven sync for commitments, changes, and invoices.',
+        acceptanceCriteria: 'Data latency below 15 minutes with retry and alerting.',
+        source: 'User',
+      },
+      {
+        id: 'brief-007-req-2',
+        category: 'Technical',
+        priority: 'Must Have',
+        description: 'Implement monitoring dashboards and error triage workflow.',
+        acceptanceCriteria: 'Integration incidents triaged and resolved under 24 hours.',
+        source: 'Template',
+      },
+      {
+        id: 'brief-007-req-3',
+        category: 'Support',
+        priority: 'Should Have',
+        description: 'Provide 60-day hypercare for accounting and project controls teams.',
+        acceptanceCriteria: 'Weekly stabilization reviews during hypercare period.',
+        source: 'Template',
+      },
+    ],
+    successCriteria: buildSuccessCriteria([
+      {
+        id: 'brief-007-success-1',
+        metric: 'Integration exception rate',
+        baseline: '14% weekly exception volume',
+        target: 'Under 3%',
+        measurementMethod: 'System Report',
+        timeframe: '30 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
+        weight: 9,
+      },
+      {
+        id: 'brief-007-success-2',
+        metric: 'Month-end reconciliation effort',
+        baseline: '120 staff hours per close',
+        target: 'Under 40 staff hours',
+        measurementMethod: 'Time Study',
+        timeframe: '90 Days Post-Deployment',
+        source: 'client',
+        confirmedByClient: true,
+        weight: 8,
+      },
+      {
+        id: 'brief-007-success-3',
+        metric: 'Project forecast variance',
+        baseline: '9% variance',
+        target: 'Under 4% variance',
+        measurementMethod: 'Financial Reconciliation',
+        timeframe: '6 Months Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
+        weight: 7,
+      },
+    ]),
+    constraints: buildConstraints({
+      budget: {
+        min: 260000,
+        max: 480000,
+        flexibility: 'Firm',
+      },
+      timeline: {
+        urgency: 'Within 1 month',
+        hardDeadline: '2026-11-15',
+        reason: 'Need stable integration before enterprise financial reporting transformation.',
+      },
+      sensitivity: {
+        level: 'Highly Confidential',
+        concerns: ['Contract value sync integrity', 'Audit trail completeness'],
+      },
+      technical: {
+        mustIntegrate: ['Sage 300 CRE', 'Procore', 'Power BI'],
+        cannotChange: ['Legacy project-cost approval workflow'],
+        preferences: ['API-first architecture', 'Structured monitoring and alerting'],
+      },
+    }),
+    riskFactors: buildRiskFactors([
+      {
+        id: 'brief-007-risk-1',
+        category: 'Technical',
+        description: 'Upstream ERP master-data inconsistencies may create recurring sync failures.',
+        likelihood: 'Medium',
+        impact: 'High',
+        mitigation: 'Finalize master-data governance before integration build starts.',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brief-007-risk-2',
+        category: 'Timeline',
+        description: 'Concurrent reporting workstream may compete for subject-matter expert bandwidth.',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        mitigation: 'Reserve integration design sessions and assign dedicated SMEs.',
+        source: 'Sablecrest Identified',
+      },
+    ]),
+    intakeResponses: {
+      'systems-to-connect': ['ERP', 'Project management platform', 'BI / reporting'],
+      'sync-frequency': 'Real-time / event-driven',
+      'data-domains': ['Commitments', 'Change orders', 'Invoices', 'Forecast snapshots'],
+      'mapping-complexity': 'High',
+      'integration-platform': 'Yes',
+    },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      'Provider selected after shortlist presentation. Team is aligned on a phased rollout with strict stabilization milestones.',
+    discoveryDate: '2026-02-02T16:00:00Z',
+    discoveryNotes:
+      'Executive team emphasized auditability and forecast confidence as primary outcomes. Integration resiliency is mission-critical.',
+    clientReviewStartedAt: '2026-02-06T13:00:00Z',
+    clientReviewCompletedAt: '2026-02-09T15:45:00Z',
+    fieldSources: buildFieldSources(brief007Paths, {
+      source: 'advisor',
+      confirmedByClient: true,
+      confirmedAt: '2026-02-09T15:45:00Z',
+    }),
+    clientNotes: {
+      'successCriteria.1': 'Finance requested monthly KPI rollups for leadership review.',
+    },
+    lockedAt: '2026-02-10T10:30:00Z',
+    lockedBy: 'mock-advisor-001',
+    ownerId,
+    createdAt: '2026-02-03T09:00:00Z',
+    updatedAt: '2026-02-18T11:20:00Z',
+  },
+  {
+    id: 'brief-008',
+    workspaceId,
+    title: 'Multi-Entity ERP Modernization',
+    projectTypeId: 'erp-implementation',
+    status: 'In Execution',
+    currentVersion: 8,
+    businessContext: buildBusinessContext({
+      companyName: 'Redwood Mechanical Group',
+      companySize: '290 employees',
+      industry: 'Mechanical Contractor',
+      currentState:
+        'Multi-entity finance operations run across disconnected systems with heavy manual reconciliations and delayed project reporting.',
+      desiredOutcome:
+        'Deploy a unified ERP foundation for accounting, project controls, payroll, and executive reporting across all entities.',
+      keyStakeholders:
+        'CFO, Controller, Director of Operations, Payroll Lead, IT Manager',
+      decisionTimeline: 'Within 1 month',
+    }),
+    requirements: [
+      {
+        id: 'brief-008-req-1',
+        category: 'Functional',
+        priority: 'Must Have',
+        description: 'Support multi-entity accounting and consolidated WIP reporting.',
+        acceptanceCriteria: 'Finance can produce consolidated and entity-level WIP reports on-demand.',
+        source: 'User',
+      },
+      {
+        id: 'brief-008-req-2',
+        category: 'Integration',
+        priority: 'Must Have',
+        description: 'Integrate ERP with Procore and payroll systems.',
+        acceptanceCriteria: 'Approved job-cost and payroll records sync without manual re-entry.',
+        source: 'Template',
+      },
+      {
+        id: 'brief-008-req-3',
+        category: 'Training',
+        priority: 'Should Have',
+        description: 'Deliver role-based enablement for accounting and project teams.',
+        acceptanceCriteria: 'All core users complete training and readiness check before go-live.',
+        source: 'Template',
+      },
+    ],
+    successCriteria: buildSuccessCriteria([
+      {
+        id: 'brief-008-success-1',
+        metric: 'Manual reconciliation effort',
+        baseline: '95 hours per month',
+        target: 'Under 30 hours per month',
+        measurementMethod: 'Time Study',
+        timeframe: '90 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: true,
+        weight: 9,
+      },
+      {
+        id: 'brief-008-success-2',
+        metric: 'Payroll close cycle',
+        baseline: '5 business days',
+        target: '2 business days',
+        measurementMethod: 'System Report',
+        timeframe: 'Phase 1 Go-Live',
+        source: 'client',
+        confirmedByClient: true,
+        weight: 8,
+      },
+    ]),
+    constraints: buildConstraints({
+      budget: {
+        min: 320000,
+        max: 620000,
+        flexibility: 'Firm',
+      },
+      timeline: {
+        urgency: 'Within 3 months',
+        hardDeadline: '2026-12-15',
+        reason: 'Go-live target is aligned with next fiscal planning cycle.',
+      },
+      sensitivity: {
+        level: 'Confidential',
+        concerns: ['Payroll and PII handling', 'Historical financial data migration quality'],
+      },
+      technical: {
+        mustIntegrate: ['Procore', 'ADP', 'Power BI'],
+        cannotChange: ['Existing field progress capture workflow'],
+        preferences: ['Phased rollout by entity', 'Structured cutover governance'],
+      },
+    }),
+    riskFactors: buildRiskFactors([
+      {
+        id: 'brief-008-risk-1',
+        category: 'Technical',
+        description: 'Legacy data normalization workload may impact cutover readiness.',
+        likelihood: 'Medium',
+        impact: 'High',
+        mitigation: 'Stage migration rehearsals and enforce data-quality checkpoints.',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brief-008-risk-2',
+        category: 'Organizational',
+        description: 'Concurrent process changes may reduce adoption if sequencing is unclear.',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        mitigation: 'Coordinate rollout waves with clear ownership and change communications.',
+        source: 'Sablecrest Identified',
+      },
+    ]),
+    intakeResponses: {
+      'current-erp': 'Legacy on-prem ERP with manual intercompany consolidation',
+      'user-count': 245,
+      'modules-needed': ['Financials / GL', 'Project accounting', 'Payroll', 'Reporting / BI'],
+      integrations: ['Procore', 'ADP', 'Power BI'],
+      'multi-entity': 'Yes',
+    },
+    advisorId: 'mock-advisor-002',
+    advisorNotes:
+      'Implementation is underway with selected provider. Phase 1 design is complete and cutover rehearsal is scheduled.',
+    discoveryDate: '2026-01-24T15:00:00Z',
+    discoveryNotes:
+      'Client requires disciplined governance and phased rollout by entity to limit operational disruption.',
+    clientReviewStartedAt: '2026-01-31T11:30:00Z',
+    clientReviewCompletedAt: '2026-02-04T16:15:00Z',
+    fieldSources: buildFieldSources(brief008Paths, {
+      source: 'advisor',
+      confirmedByClient: true,
+      confirmedAt: '2026-02-04T16:15:00Z',
+    }),
+    clientNotes: {},
+    lockedAt: '2026-02-05T09:20:00Z',
+    lockedBy: 'mock-advisor-002',
+    ownerId,
+    createdAt: '2026-01-25T09:30:00Z',
+    updatedAt: '2026-02-20T14:40:00Z',
+  },
+  {
+    id: 'brief-009',
+    workspaceId,
+    title: 'Field Operations Platform Consolidation',
+    projectTypeId: 'pm-software',
+    status: 'Cancelled',
+    currentVersion: 2,
+    businessContext: buildBusinessContext({
+      companyName: 'Lakeshore Interiors',
+      companySize: '115 employees',
+      industry: 'Specialty Trade Contractor',
+      currentState:
+        'Field teams use multiple disconnected tools for RFIs, punch, and daily reporting, creating inconsistent project visibility.',
+      desiredOutcome:
+        'Consolidate field workflows into one platform to improve superintendent reporting and reduce administrative rework.',
+      keyStakeholders:
+        'COO, Director of Field Operations, IT Generalist, 9 Superintendents',
+      decisionTimeline: 'Within 2 weeks',
+    }),
+    requirements: [
+      {
+        id: 'brief-009-req-1',
+        category: 'Functional',
+        priority: 'Must Have',
+        description: 'Standardize daily logs, RFIs, and punch workflows in one platform.',
+        acceptanceCriteria: 'Core field workflows are templated and adopted by all active projects.',
+        source: 'User',
+      },
+      {
+        id: 'brief-009-req-2',
+        category: 'Training',
+        priority: 'Should Have',
+        description: 'Provide onboarding and refresher training for field teams.',
+        acceptanceCriteria: 'All field supervisors complete baseline training before pilot closeout.',
+        source: 'Template',
+      },
+    ],
+    successCriteria: buildSuccessCriteria([
+      {
+        id: 'brief-009-success-1',
+        metric: 'Field workflow adoption rate',
+        baseline: 'Not formally measured',
+        target: '80% adoption in 60 days',
+        measurementMethod: 'Adoption Analytics',
+        timeframe: '60 Days Post-Deployment',
+        source: 'advisor',
+        confirmedByClient: false,
+        weight: 8,
+      },
+    ]),
+    constraints: buildConstraints({
+      budget: {
+        min: 70000,
+        max: 130000,
+        flexibility: 'Flexible',
+      },
+      timeline: {
+        urgency: 'Within 2 weeks',
+        hardDeadline: '2026-06-01',
+        reason: 'Wanted rollout before summer project ramp.',
+      },
+      sensitivity: {
+        level: 'Standard',
+        concerns: ['Field process disruption during active projects'],
+      },
+      technical: {
+        mustIntegrate: ['Procore', 'SharePoint'],
+        cannotChange: ['Existing owner-facing reporting package'],
+        preferences: ['Mobile-first UX', 'Fast deployment timeline'],
+      },
+    }),
+    riskFactors: buildRiskFactors([
+      {
+        id: 'brief-009-risk-1',
+        category: 'Commercial',
+        description: 'Budget was reallocated after two large projects were delayed.',
+        likelihood: 'High',
+        impact: 'High',
+        mitigation: 'Revisit initiative in next fiscal cycle with revised scope.',
+        source: 'Sablecrest Identified',
+      },
+      {
+        id: 'brief-009-risk-2',
+        category: 'Timeline',
+        description: 'Executive sponsor turnover paused decision-making and procurement.',
+        likelihood: 'High',
+        impact: 'Medium',
+        mitigation: 'Wait for new operations leadership alignment before reactivation.',
+        source: 'Sablecrest Identified',
+      },
+    ]),
+    intakeResponses: {
+      'project-volume': 34,
+      'field-users': 52,
+      'workflow-priorities': ['Daily logs', 'RFIs', 'Punch lists'],
+      'document-control': 'No central process in place',
+      'owner-visibility': 'Sometimes',
+    },
+    advisorId: 'mock-advisor-001',
+    advisorNotes:
+      'Initiative cancelled due to budget reallocation and leadership turnover. Keep discovery artifacts for potential restart next cycle.',
+    discoveryDate: '2026-02-07T16:30:00Z',
+    discoveryNotes:
+      'Client had strong operational pain points but procurement freeze halted investment decisions before brief finalization.',
+    clientReviewStartedAt: '2026-02-12T13:00:00Z',
+    clientReviewCompletedAt: undefined,
+    fieldSources: buildFieldSources(brief009Paths, {
+      source: 'advisor',
+      confirmedByClient: false,
+      markedForClientInput: [
+        'businessContext.keyStakeholders',
+        'constraints.budget.max',
+        'intakeResponses.document-control',
+      ],
+    }),
+    clientNotes: {
+      'constraints.timeline.reason': 'Budget uncertainty may push this into next fiscal year.',
+    },
+    lockedAt: undefined,
+    lockedBy: undefined,
+    ownerId,
+    createdAt: '2026-02-08T09:10:00Z',
+    updatedAt: '2026-02-19T12:05:00Z',
   },
 ];
 
