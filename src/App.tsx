@@ -9,9 +9,6 @@ import { AppLayout } from "./components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
-import RequestsList from "./pages/RequestsList";
-import RequestDetail from "./pages/RequestDetail";
-import NewRequest from "./pages/NewRequest";
 import BriefsList from "./pages/BriefsList";
 import NewBrief from "./pages/briefs/NewBrief";
 import GuidedBriefReview from "./pages/briefs/GuidedBriefReview";
@@ -22,8 +19,6 @@ import AdminBriefCreator from "./pages/admin/AdminBriefCreator";
 import ClientsList from "./pages/admin/ClientsList";
 import DevNav from "./pages/admin/DevNav";
 import ProviderRegistry from "./pages/ProviderRegistry";
-import Scorecards from "./pages/Scorecards";
-import ShortlistCompare from "./pages/ShortlistCompare";
 import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import ProviderPortal, { ProviderProfile, ProviderEvidence, ProviderReferences } from "./pages/ProviderPortal";
@@ -91,9 +86,6 @@ const App = () => (
                 <Route path="client-onboarding" element={<ClientOnboarding />} />
                 <Route path="briefs/:id/review" element={<GuidedBriefReview />} />
                 <Route path="briefs/:id" element={<BriefDetail />} />
-                <Route path="requests" element={<RequestsList />} />
-                <Route path="requests/new" element={<NewRequest />} />
-                <Route path="requests/:id" element={<RequestDetail />} />
                 <Route path="briefs" element={<BriefsList />} />
                 <Route path="briefs/new" element={<NewBrief />} />
                 <Route
@@ -105,13 +97,17 @@ const App = () => (
                   }
                 />
                 <Route path="dev" element={<DevNav />} />
-                <Route path="scorecards" element={<Scorecards />} />
-                <Route path="shortlists" element={<ShortlistCompare />} />
-                <Route path="shortlists/:id" element={<ShortlistCompare />} />
                 <Route path="messages" element={<Messages />} />
                 <Route path="settings" element={<Settings />} />
                 {/* Provider Portal Routes */}
-                <Route path="provider-portal" element={<ProviderPortal />}>
+                <Route
+                  path="provider-portal"
+                  element={
+                    <RoleRoute requiredRoles={['client']}>
+                      <ProviderPortal />
+                    </RoleRoute>
+                  }
+                >
                   <Route index element={<Navigate to="/provider-portal/profile" replace />} />
                   <Route path="profile" element={<ProviderProfile />} />
                   <Route path="evidence" element={<ProviderEvidence />} />
