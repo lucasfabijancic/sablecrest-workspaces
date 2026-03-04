@@ -5,30 +5,25 @@ import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { aecProviders } from '@/data/aecProviders';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBriefActions } from '@/hooks/useBriefActions';
-import { useToast } from '@/hooks/use-toast';
+import { useMatching } from '@/hooks/useMatching';
 import { useBriefLoader } from '@/hooks/useBriefLoader';
-import { supabase } from '@/integrations/supabase/client';
+import { useShortlist } from '@/hooks/useShortlist';
 import {
   type ActionKey,
   type AuditRow,
-  type BriefRow,
   type BriefTabKey,
-  buildIntakeResponsesWithMatchingResult,
-  buildIntakeResponsesWithShortlist,
   CLIENT_SHORTLIST_STATUSES,
   formatRelativeTime,
   formatValueForDisplay,
   getValueAtPath,
   isMeaningfulValue,
   makeFieldLabel,
-  mapRowToBrief,
   pluralize,
   sourceBadgeClass,
   sourceBadgeLabel,
 } from '@/lib/briefUtils';
-import { generateMatches } from '@/lib/matching';
 import { cn } from '@/lib/utils';
-import ClientShortlistView, { type ClientPreference } from '@/components/matching/ClientShortlistView';
+import ClientShortlistView from '@/components/matching/ClientShortlistView';
 import MatchResults from '@/components/matching/MatchResults';
 import FitScoreCard from '@/components/matching/FitScoreCard';
 import ShortlistComparison from '@/components/matching/ShortlistComparison';
@@ -51,22 +46,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { ImplementationBrief, RiskFactor } from '@/types/brief';
-import type { MatchScore, MatchingResult, ShortlistEntry } from '@/types/matching';
+import type { RiskFactor } from '@/types/brief';
+import type { ShortlistEntry } from '@/types/matching';
 import type { ProviderProfile } from '@/types/provider';
 export default function BriefDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
 
-  const { user, loading: authLoading, hasRole, isOpsOrAdmin, isUiShellMode } = useAuth();
+  const { loading: authLoading, hasRole, isOpsOrAdmin, isUiShellMode } = useAuth();
 
   const isAdmin = isOpsOrAdmin || hasRole(['admin', 'ops']);
   const isClient = hasRole(['client']) && !isAdmin;
 
   const {
     brief,
-    setBrief,
     loading,
     loadError,
     notFound,
@@ -85,7 +78,6 @@ export default function BriefDetail() {
     deleteDialogOpen,
     setDeleteDialogOpen,
     persistBriefUpdate,
-    updateBriefStatus,
     handleDelete,
     handleSendToClient,
     handleRecallToDraft,
@@ -98,11 +90,44 @@ export default function BriefDetail() {
 
   const [activeTab, setActiveTab] = useState<BriefTabKey>('overview');
   const [auditMode, setAuditMode] = useState<'all' | 'changes'>('all');
-  const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
-  const [selectedProviderForDossier, setSelectedProviderForDossier] = useState<ProviderProfile | null>(null);
-  const [isDossierOpen, setIsDossierOpen] = useState(false);
-  const [isComparing, setIsComparing] = useState(false);
-  const [selectedProviderForSelection, setSelectedProviderForSelection] = useState<ProviderProfile | null>(null);
+
+  const { isGeneratingMatches, handleGenerateMatches, handleRegenerateMatches } = useMatching({
+    brief,
+    isAdmin,
+    isUiShellMode,
+    matchingResult,
+    setMatchingResult,
+    applyLocalBriefUpdates,
+  });
+
+  const {
+    selectedProviderForDossier,
+    isDossierOpen,
+    isComparing,
+    selectedProviderForSelection,
+    setSelectedProviderForSelection,
+    setIsComparing,
+    handleAddToShortlist,
+    handleRemoveFromShortlist,
+    handleClientPreferenceSelect,
+    handlePresentToClient,
+    handleViewDossier,
+    handleCloseDossier,
+    handleCompareShortlist,
+    handleOpenSelectProvider,
+    handleConfirmSelectProvider,
+  } = useShortlist({
+    brief,
+    isAdmin,
+    isUiShellMode,
+    shortlist,
+    setShortlist,
+    clientShortlistPreferences,
+    setClientShortlistPreferences,
+    matchingResult,
+    applyLocalBriefUpdates,
+    persistBriefUpdate,
+  });
 
   const projectType = useMemo(() => {
     if (!brief) return null;
@@ -243,14 +268,6 @@ export default function BriefDetail() {
   }, [brief, projectType]);
 
   useEffect(() => {
-    setIsGeneratingMatches(false);
-    setSelectedProviderForDossier(null);
-    setIsDossierOpen(false);
-    setIsComparing(false);
-    setSelectedProviderForSelection(null);
-  }, [brief?.id]);
-
-  useEffect(() => {
     if (!brief) return;
 
     const allowedTabs: BriefTabKey[] = isAdmin
@@ -275,347 +292,6 @@ export default function BriefDetail() {
       navigate('/dashboard', { replace: true });
     }
   }, [authLoading, isAdmin, isClient, isUiShellMode, navigate]);
-
-  const persistMatchingResultMetadata = useCallback(
-    async (result: MatchingResult, options?: { silentError?: boolean }) => {
-      if (!brief) return;
-
-      const nextIntakeResponses = buildIntakeResponsesWithMatchingResult(
-        brief.intakeResponses,
-        result
-      );
-
-      applyLocalBriefUpdates({ intakeResponses: nextIntakeResponses });
-
-      if (isUiShellMode) return;
-
-      const { error } = await supabase
-        .from('implementation_briefs')
-        .update({ intake_responses: nextIntakeResponses })
-        .eq('id', brief.id);
-
-      if (error && !options?.silentError) {
-        toast({
-          title: 'Unable to persist match results',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    },
-    [applyLocalBriefUpdates, brief, isUiShellMode, toast]
-  );
-
-  const runMatchGeneration = useCallback(
-    async (options: { resetFirst?: boolean } = {}) => {
-      if (!brief || !isAdmin) return;
-
-      if (options.resetFirst) {
-        setMatchingResult(null);
-      }
-
-      setIsGeneratingMatches(true);
-
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        const result = generateMatches(brief, aecProviders);
-        setMatchingResult(result);
-        void persistMatchingResultMetadata(result, { silentError: true });
-      } catch (error: any) {
-        toast({
-          title: 'Matching failed',
-          description: error?.message ?? 'Unable to generate provider matches right now.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsGeneratingMatches(false);
-      }
-    },
-    [brief, isAdmin, persistMatchingResultMetadata, toast]
-  );
-
-  const handleGenerateMatches = useCallback(async () => {
-    await runMatchGeneration();
-  }, [runMatchGeneration]);
-
-  const handleRegenerateMatches = useCallback(async () => {
-    await runMatchGeneration({ resetFirst: true });
-  }, [runMatchGeneration]);
-
-  const persistShortlistMetadata = useCallback(
-    async (
-      nextShortlist: ShortlistEntry[],
-      nextPreferences: Record<string, ClientPreference>,
-      options?: { silentError?: boolean }
-    ) => {
-      if (!brief) return;
-
-      const nextIntakeResponses = buildIntakeResponsesWithShortlist(
-        brief.intakeResponses,
-        nextShortlist,
-        nextPreferences
-      );
-
-      applyLocalBriefUpdates({ intakeResponses: nextIntakeResponses });
-
-      if (isUiShellMode) return;
-
-      const { error } = await supabase
-        .from('implementation_briefs')
-        .update({ intake_responses: nextIntakeResponses })
-        .eq('id', brief.id);
-
-      if (error && !options?.silentError) {
-        toast({
-          title: 'Unable to persist shortlist changes',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    },
-    [applyLocalBriefUpdates, brief, isUiShellMode, toast]
-  );
-
-  const handleAddToShortlist = useCallback(
-    (providerId: string) => {
-      if (!matchingResult) return;
-
-      if (shortlist.some((entry) => entry.providerId === providerId)) {
-        return;
-      }
-
-      const matchScore: MatchScore | undefined = matchingResult.matches.find(
-        (match) => match.providerId === providerId
-      );
-
-      if (!matchScore) {
-        toast({
-          title: 'Unable to add provider',
-          description: 'Match score data for this provider is unavailable.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const entry: ShortlistEntry = {
-        id: `shortlist-${providerId}-${Date.now()}`,
-        briefId: brief?.id ?? matchScore.briefId,
-        providerId,
-        matchScore,
-        status: 'Proposed',
-        addedAt: new Date().toISOString(),
-        addedBy: user?.id ?? 'system',
-      };
-
-      const nextShortlist = [...shortlist, entry];
-      setShortlist(nextShortlist);
-      void persistShortlistMetadata(nextShortlist, clientShortlistPreferences, { silentError: true });
-
-      toast({
-        title: 'Provider added to shortlist.',
-      });
-    },
-    [
-      brief?.id,
-      clientShortlistPreferences,
-      matchingResult,
-      persistShortlistMetadata,
-      shortlist,
-      toast,
-      user?.id,
-    ]
-  );
-
-  const handleRemoveFromShortlist = useCallback(
-    (providerId: string) => {
-      const nextShortlist = shortlist.filter((entry) => entry.providerId !== providerId);
-      setShortlist(nextShortlist);
-      if (nextShortlist.length < 2) {
-        setIsComparing(false);
-      }
-      void persistShortlistMetadata(nextShortlist, clientShortlistPreferences, { silentError: true });
-    },
-    [clientShortlistPreferences, persistShortlistMetadata, shortlist]
-  );
-
-  const handleClientPreferenceSelect = useCallback(
-    (providerId: string, preference: ClientPreference) => {
-      const nextPreferences = {
-        ...clientShortlistPreferences,
-        [providerId]: preference,
-      };
-
-      const nextShortlist = shortlist.map((entry) =>
-        entry.providerId === providerId
-          ? {
-              ...entry,
-              status:
-                preference === 'Interested'
-                  ? 'Interested'
-                  : preference === 'Not Interested'
-                  ? 'Declined'
-                  : entry.status,
-              fitNotes: preference === 'Questions' ? 'Client has follow-up questions.' : entry.fitNotes,
-              responseAt: new Date().toISOString(),
-            }
-          : entry
-      );
-
-      setClientShortlistPreferences(nextPreferences);
-      setShortlist(nextShortlist);
-      void persistShortlistMetadata(nextShortlist, nextPreferences, { silentError: true });
-    },
-    [clientShortlistPreferences, persistShortlistMetadata, shortlist]
-  );
-
-  const handleViewDossier = useCallback(
-    (providerId: string) => {
-      const provider = providerLookup[providerId];
-
-      if (!provider) {
-        toast({
-          title: 'Provider not found',
-          description: 'Unable to locate this provider dossier.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      setSelectedProviderForDossier(provider);
-      setIsDossierOpen(true);
-    },
-    [providerLookup, toast]
-  );
-
-  const handleCompareShortlist = useCallback(() => {
-    setIsComparing(true);
-  }, []);
-
-  const handleOpenSelectProvider = useCallback(
-    (providerId: string) => {
-      if (!isAdmin) return;
-      const provider = providerLookup[providerId];
-      if (!provider) {
-        toast({
-          title: 'Provider not found',
-          description: 'Unable to locate this provider in the shortlist.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      setSelectedProviderForSelection(provider);
-    },
-    [isAdmin, providerLookup, toast]
-  );
-
-  const handleConfirmSelectProvider = useCallback(async () => {
-    if (!brief || !selectedProviderForSelection) return;
-
-    const selectedProviderId = selectedProviderForSelection.id;
-    const selectedProviderName = selectedProviderForSelection.name;
-    const selectedAt = new Date().toISOString();
-    const nextShortlist = shortlist.map((entry) =>
-      entry.providerId === selectedProviderId
-        ? {
-            ...entry,
-            status: 'Selected',
-            responseAt: selectedAt,
-          }
-        : entry
-    );
-
-    const nextIntakeResponses = buildIntakeResponsesWithShortlist(
-      brief.intakeResponses,
-      nextShortlist,
-      clientShortlistPreferences
-    );
-
-    const updated = await persistBriefUpdate(
-      'selectProvider',
-      {
-        status: 'Selected',
-        intake_responses: nextIntakeResponses,
-      },
-      {
-        status: 'Selected',
-        intakeResponses: nextIntakeResponses,
-      },
-      `${selectedProviderName} selected.`,
-      'The brief is now marked as selected.'
-    );
-
-    if (!updated) return;
-
-    setShortlist(nextShortlist);
-    setSelectedProviderForSelection(null);
-    setIsComparing(false);
-
-    if (!isUiShellMode) {
-      const { data, error } = await supabase
-        .from('implementation_briefs')
-        .select('*')
-        .eq('id', brief.id)
-        .maybeSingle();
-
-      if (error) {
-        toast({
-          title: 'Selection saved, refresh failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else if (data) {
-        setBrief(mapRowToBrief(data as BriefRow));
-      }
-    }
-  }, [
-    brief,
-    clientShortlistPreferences,
-    isUiShellMode,
-    persistBriefUpdate,
-    selectedProviderForSelection,
-    shortlist,
-    toast,
-  ]);
-
-  const handlePresentToClient = useCallback(async () => {
-    if (!brief || shortlist.length === 0) {
-      toast({
-        title: 'Shortlist is empty',
-        description: 'Add at least one provider before presenting to the client.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const nextIntakeResponses = buildIntakeResponsesWithShortlist(
-      brief.intakeResponses,
-      shortlist,
-      clientShortlistPreferences
-    );
-
-    const updated = await persistBriefUpdate(
-      'presentShortlist',
-      {
-        status: 'Shortlisted',
-        intake_responses: nextIntakeResponses,
-      },
-      {
-        status: 'Shortlisted',
-        intakeResponses: nextIntakeResponses,
-      },
-      'Shortlist presented',
-      'The curated shortlist is now visible to the client.'
-    );
-
-    if (updated) {
-      setActiveTab('matches');
-    }
-  }, [brief, clientShortlistPreferences, persistBriefUpdate, shortlist, toast]);
-
-  const handleCloseDossier = useCallback(() => {
-    setIsDossierOpen(false);
-    setSelectedProviderForDossier(null);
-  }, []);
 
   const runAdminProgressView = useCallback(() => {
     setAuditMode('all');
