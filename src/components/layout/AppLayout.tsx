@@ -3,7 +3,6 @@ import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { TopBar } from './TopBar';
-import { OnboardingBanner } from '@/components/OnboardingBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -98,8 +97,6 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar />
-          {/* Show onboarding banner in UI Shell Mode */}
-          {isUiShellMode && <OnboardingBanner />}
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>
