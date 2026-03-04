@@ -1,4 +1,45 @@
-import type { Request, Workspace, ActivityEvent, Profile, Membership } from '@/types/database';
+import type {
+  Workspace,
+  Profile,
+  Membership,
+  TimelineUrgency,
+  SensitivityLevel,
+} from '@/types/database';
+
+type MockBudgetRange = 'Under $10K' | '$10K-$50K' | '$50K-$150K' | '$150K-$500K' | 'Over $500K';
+type MockRequestState =
+  | 'Draft'
+  | 'Submitted'
+  | 'Scoping'
+  | 'Shortlisting'
+  | 'In Execution'
+  | 'Delivered'
+  | 'Closed';
+
+interface MockRequestRecord {
+  id: string;
+  workspace_id: string;
+  title: string;
+  desired_outcome: string | null;
+  context: string | null;
+  timeline_urgency: TimelineUrgency | null;
+  sensitivity: SensitivityLevel | null;
+  budget_band: MockBudgetRange | null;
+  status: MockRequestState;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MockWorkspaceActivity {
+  id: string;
+  workspace_id: string;
+  request_id: string | null;
+  actor_user_id: string | null;
+  event_type: string;
+  event_payload: Record<string, any>;
+  created_at: string;
+}
 
 // User roles for UI shell mode
 export type MockRole = 'buyer' | 'ops' | 'provider' | 'admin';
@@ -44,7 +85,7 @@ export const roleAccess: Record<MockRole, string[]> = {
   admin: ['dashboard', 'requests', 'ops-console', 'provider-registry', 'provider-portal', 'settings'],
 };
 
-export const mockRequests: Request[] = [
+export const mockRequests: MockRequestRecord[] = [
   {
     id: 'mock-req-1',
     workspace_id: 'mock-workspace-1',
@@ -117,7 +158,7 @@ export const mockRequests: Request[] = [
   },
 ];
 
-export const mockActivities: (ActivityEvent & { actor?: Profile })[] = [
+export const mockActivities: (MockWorkspaceActivity & { actor?: Profile })[] = [
   {
     id: 'act-1',
     workspace_id: 'mock-workspace-1',

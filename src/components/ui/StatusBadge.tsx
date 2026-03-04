@@ -1,30 +1,12 @@
 import { cn } from '@/lib/utils';
-import type { RequestStatus, ShortlistStatus, TimelineUrgency, SensitivityLevel } from '@/types/database';
+import type { TimelineUrgency, SensitivityLevel } from '@/types/database';
 import type { BriefStatus } from '@/types/brief';
 
 interface StatusBadgeProps {
-  status: RequestStatus | ShortlistStatus | TimelineUrgency | SensitivityLevel | BriefStatus;
-  variant?: 'request' | 'shortlist' | 'urgency' | 'sensitivity' | 'brief';
+  status: TimelineUrgency | SensitivityLevel | BriefStatus;
+  variant?: 'urgency' | 'sensitivity' | 'brief';
   className?: string;
 }
-
-const requestStatusStyles: Record<RequestStatus, string> = {
-  'Draft': 'bg-muted text-muted-foreground',
-  'Submitted': 'bg-status-submitted/15 text-status-submitted',
-  'Scoping': 'bg-status-scoping/15 text-status-scoping',
-  'Shortlisting': 'bg-status-shortlisting/15 text-status-shortlisting',
-  'In Execution': 'bg-status-execution/15 text-status-execution',
-  'Delivered': 'bg-status-delivered/15 text-status-delivered',
-  'Closed': 'bg-muted text-muted-foreground',
-};
-
-const shortlistStatusStyles: Record<ShortlistStatus, string> = {
-  'Proposed': 'bg-muted text-muted-foreground',
-  'Contacted': 'bg-status-submitted/15 text-status-submitted',
-  'Interested': 'bg-status-shortlisting/15 text-status-shortlisting',
-  'Declined': 'bg-destructive/15 text-destructive',
-  'Selected': 'bg-success/15 text-success',
-};
 
 const urgencyStyles: Record<TimelineUrgency, string> = {
   'Immediate': 'bg-urgency-immediate/15 text-urgency-immediate',
@@ -53,16 +35,10 @@ const briefStatusStyles: Record<BriefStatus, string> = {
   'Cancelled': 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
 };
 
-export function StatusBadge({ status, variant = 'request', className }: StatusBadgeProps) {
+export function StatusBadge({ status, variant = 'brief', className }: StatusBadgeProps) {
   let styles = '';
   
   switch (variant) {
-    case 'request':
-      styles = requestStatusStyles[status as RequestStatus] || 'bg-muted text-muted-foreground';
-      break;
-    case 'shortlist':
-      styles = shortlistStatusStyles[status as ShortlistStatus] || 'bg-muted text-muted-foreground';
-      break;
     case 'urgency':
       styles = urgencyStyles[status as TimelineUrgency] || 'bg-muted text-muted-foreground';
       break;

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TimelineUrgency, SensitivityLevel, BudgetBand } from '@/types/database';
+import type { TimelineUrgency, SensitivityLevel } from '@/types/database';
 
 const steps = [
   { id: 1, title: 'Workspace', description: 'Set up your workspace' },
@@ -20,7 +20,8 @@ const steps = [
 
 const timelineOptions: TimelineUrgency[] = ['Immediate', 'Within 2 weeks', 'Within 1 month', 'Within 3 months', 'Flexible'];
 const sensitivityOptions: SensitivityLevel[] = ['Standard', 'Confidential', 'Highly Confidential'];
-const budgetOptions: BudgetBand[] = ['Under $10K', '$10K-$50K', '$50K-$150K', '$150K-$500K', 'Over $500K'];
+const onboardingBudgetOptions = ['Under $10K', '$10K-$50K', '$50K-$150K', '$150K-$500K', 'Over $500K'] as const;
+type OnboardingBudgetValue = (typeof onboardingBudgetOptions)[number];
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -40,7 +41,7 @@ export default function Onboarding() {
   // Step 3 - Constraints
   const [timelineUrgency, setTimelineUrgency] = useState<TimelineUrgency | ''>('');
   const [sensitivity, setSensitivity] = useState<SensitivityLevel | ''>('');
-  const [budgetBand, setBudgetBand] = useState<BudgetBand | ''>('');
+  const [budgetRange, setBudgetRange] = useState<OnboardingBudgetValue | ''>('');
 
   const canProceed = () => {
     switch (currentStep) {
@@ -78,7 +79,7 @@ export default function Onboarding() {
           context: context.trim() || null,
           timeline_urgency: (timelineUrgency as TimelineUrgency) || null,
           sensitivity: (sensitivity as SensitivityLevel) || null,
-          budget_band: (budgetBand as BudgetBand) || null,
+          budget_band: budgetRange || null,
           status: 'Draft',
         });
       }
@@ -121,7 +122,7 @@ export default function Onboarding() {
           context: context.trim() || null,
           timeline_urgency: timelineUrgency as TimelineUrgency,
           sensitivity: sensitivity as SensitivityLevel,
-          budget_band: (budgetBand as BudgetBand) || null,
+          budget_band: budgetRange || null,
           status: 'Submitted',
         })
         .select()
@@ -277,12 +278,12 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <Label className="text-xs">Budget band</Label>
-                    <Select value={budgetBand} onValueChange={(v) => setBudgetBand(v as BudgetBand)}>
+                    <Select value={budgetRange} onValueChange={(v) => setBudgetRange(v as OnboardingBudgetValue)}>
                       <SelectTrigger className="mt-1 h-8 text-xs">
                         <SelectValue placeholder="Select budget..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {budgetOptions.map(opt => (
+                        {onboardingBudgetOptions.map(opt => (
                           <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
                         ))}
                       </SelectContent>
@@ -360,10 +361,10 @@ export default function Onboarding() {
                         <span className="text-foreground">{sensitivity}</span>
                       </div>
                     )}
-                    {budgetBand && (
+                    {budgetRange && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Budget</span>
-                        <span className="text-foreground">{budgetBand}</span>
+                        <span className="text-foreground">{budgetRange}</span>
                       </div>
                     )}
                   </div>
