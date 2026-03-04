@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { aecProviders } from '@/data/aecProviders';
-import { mockBriefs } from '@/data/mockBriefs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useBriefLoader } from '@/hooks/useBriefLoader';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import {
@@ -13,7 +13,6 @@ import {
   type AuditRow,
   type BriefRow,
   type BriefTabKey,
-  type ProfileRow,
   type StatusUpdateOptions,
   buildIntakeResponsesWithMatchingResult,
   buildIntakeResponsesWithShortlist,
@@ -24,15 +23,9 @@ import {
   isMeaningfulValue,
   makeFieldLabel,
   mapRowToBrief,
-  MATCHING_RESULT_META_KEY,
   pluralize,
-  SHORTLIST_META_KEY,
-  SHORTLIST_PREFERENCES_META_KEY,
   sourceBadgeClass,
   sourceBadgeLabel,
-  toClientPreferenceMap,
-  toMatchingResult,
-  toShortlistEntries,
 } from '@/lib/briefUtils';
 import { generateMatches } from '@/lib/matching';
 import { cn } from '@/lib/utils';
@@ -67,23 +60,31 @@ export default function BriefDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
 
-  const { user, loading: authLoading, hasRole, isOpsOrAdmin, isUiShellMode, currentWorkspace } = useAuth();
+  const { user, loading: authLoading, hasRole, isOpsOrAdmin, isUiShellMode } = useAuth();
 
   const isAdmin = isOpsOrAdmin || hasRole(['admin', 'ops']);
   const isClient = hasRole(['client']) && !isAdmin;
 
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [brief, setBrief] = useState<ImplementationBrief | null>(null);
-  const [advisorName, setAdvisorName] = useState<string>('Unassigned');
+  const {
+    brief,
+    setBrief,
+    loading,
+    loadError,
+    notFound,
+    advisorName,
+    matchingResult,
+    setMatchingResult,
+    shortlist,
+    setShortlist,
+    clientShortlistPreferences,
+    setClientShortlistPreferences,
+    applyLocalBriefUpdates,
+  } = useBriefLoader(id);
+
   const [activeTab, setActiveTab] = useState<BriefTabKey>('overview');
   const [actionInProgress, setActionInProgress] = useState<ActionKey | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [auditMode, setAuditMode] = useState<'all' | 'changes'>('all');
-  const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
-  const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
-  const [clientShortlistPreferences, setClientShortlistPreferences] = useState<Record<string, ClientPreference>>({});
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [selectedProviderForDossier, setSelectedProviderForDossier] = useState<ProviderProfile | null>(null);
   const [isDossierOpen, setIsDossierOpen] = useState(false);
@@ -229,56 +230,11 @@ export default function BriefDetail() {
   }, [brief, projectType]);
 
   useEffect(() => {
-    setMatchingResult(null);
     setIsGeneratingMatches(false);
     setSelectedProviderForDossier(null);
     setIsDossierOpen(false);
     setIsComparing(false);
     setSelectedProviderForSelection(null);
-
-    if (!brief) {
-      setShortlist([]);
-      setClientShortlistPreferences({});
-      return;
-    }
-
-    const storedMatchingResult = toMatchingResult(
-      brief.intakeResponses?.[MATCHING_RESULT_META_KEY]
-    );
-    if (storedMatchingResult) {
-      setMatchingResult(storedMatchingResult);
-    }
-
-    const storedShortlist = toShortlistEntries(brief.intakeResponses?.[SHORTLIST_META_KEY]);
-    const storedPreferences = toClientPreferenceMap(
-      brief.intakeResponses?.[SHORTLIST_PREFERENCES_META_KEY]
-    );
-
-    if (storedShortlist.length > 0) {
-      setShortlist(storedShortlist);
-      setClientShortlistPreferences(storedPreferences);
-      return;
-    }
-
-    if (CLIENT_SHORTLIST_STATUSES.includes(brief.status)) {
-      const fallbackMatches = generateMatches(brief, aecProviders, { maxResults: 3 });
-      const generatedShortlist: ShortlistEntry[] = fallbackMatches.matches.map((match) => ({
-        id: `shortlist-${match.providerId}`,
-        briefId: brief.id,
-        providerId: match.providerId,
-        matchScore: match,
-        status: 'Proposed',
-        addedAt: brief.updatedAt,
-        addedBy: brief.advisorId ?? brief.ownerId,
-      }));
-
-      setShortlist(generatedShortlist);
-      setClientShortlistPreferences(storedPreferences);
-      return;
-    }
-
-    setShortlist([]);
-    setClientShortlistPreferences({});
   }, [brief?.id]);
 
   useEffect(() => {
@@ -306,150 +262,6 @@ export default function BriefDetail() {
       navigate('/dashboard', { replace: true });
     }
   }, [authLoading, isAdmin, isClient, isUiShellMode, navigate]);
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!id) {
-      setLoading(false);
-      setNotFound(true);
-      setLoadError('Brief id is missing from the URL.');
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchBrief = async () => {
-      setLoading(true);
-      setLoadError(null);
-      setNotFound(false);
-
-      try {
-        if (isUiShellMode) {
-          const shellBrief = mockBriefs.find((candidate) => candidate.id === id);
-
-          if (!shellBrief) {
-            if (!cancelled) {
-              setNotFound(true);
-              setLoadError('Brief not found.');
-              setBrief(null);
-            }
-            return;
-          }
-
-          if (isClient && currentWorkspace && shellBrief.workspaceId !== currentWorkspace.id) {
-            if (!cancelled) {
-              setNotFound(true);
-              setLoadError('You do not have access to this brief.');
-              setBrief(null);
-            }
-            return;
-          }
-
-          const mockAdvisorNameMap: Record<string, string> = {
-            'mock-advisor-001': 'Alex Carter',
-            'mock-advisor-002': 'Jordan Lee',
-          };
-
-          if (!cancelled) {
-            setBrief(shellBrief);
-            setAdvisorName(
-              shellBrief.advisorId ? mockAdvisorNameMap[shellBrief.advisorId] ?? shellBrief.advisorId : 'Unassigned'
-            );
-          }
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('implementation_briefs')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (error) throw error;
-        if (!data) {
-          if (!cancelled) {
-            setNotFound(true);
-            setLoadError('Brief not found.');
-            setBrief(null);
-          }
-          return;
-        }
-
-        const mappedBrief = mapRowToBrief(data as BriefRow);
-
-        if (isClient) {
-          if (!currentWorkspace || mappedBrief.workspaceId !== currentWorkspace.id) {
-            if (!cancelled) {
-              setNotFound(true);
-              setLoadError('You do not have access to this brief.');
-              setBrief(null);
-            }
-            return;
-          }
-
-          if (mappedBrief.status === 'Advisor Draft') {
-            if (!cancelled) {
-              setNotFound(true);
-              setLoadError('This brief has not been shared with you yet.');
-              setBrief(null);
-            }
-            return;
-          }
-        }
-
-        if (!cancelled) {
-          setBrief(mappedBrief);
-        }
-
-        if (mappedBrief.advisorId) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .eq('id', mappedBrief.advisorId)
-            .maybeSingle();
-
-          if (!cancelled) {
-            const advisorProfile = profileData as Pick<ProfileRow, 'id' | 'full_name' | 'email'> | null;
-            const displayName =
-              advisorProfile?.full_name?.trim() ||
-              advisorProfile?.email?.trim() ||
-              mappedBrief.advisorId ||
-              'Unassigned';
-            setAdvisorName(displayName);
-          }
-        } else if (!cancelled) {
-          setAdvisorName('Unassigned');
-        }
-      } catch (error: any) {
-        if (!cancelled) {
-          setLoadError(error?.message ?? 'Unable to load the implementation brief.');
-          setBrief(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchBrief();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, currentWorkspace, id, isClient, isUiShellMode]);
-
-  const applyLocalBriefUpdates = useCallback((updates: Partial<ImplementationBrief>) => {
-    setBrief((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      };
-    });
-  }, []);
 
   const persistBriefUpdate = useCallback(
     async (
