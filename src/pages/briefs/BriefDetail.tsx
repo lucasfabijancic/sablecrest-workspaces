@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { aecProviders } from '@/data/aecProviders';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,17 +18,14 @@ import {
   getValueAtPath,
   isMeaningfulValue,
   makeFieldLabel,
-  pluralize,
-  sourceBadgeClass,
-  sourceBadgeLabel,
 } from '@/lib/briefUtils';
 import { cn } from '@/lib/utils';
+import BriefAuditTab from '@/components/briefs/detail/BriefAuditTab';
+import BriefConstraintsTab from '@/components/briefs/detail/BriefConstraintsTab';
+import BriefMatchesTab from '@/components/briefs/detail/BriefMatchesTab';
+import BriefOverviewTab from '@/components/briefs/detail/BriefOverviewTab';
 import ClientShortlistView from '@/components/matching/ClientShortlistView';
-import MatchResults from '@/components/matching/MatchResults';
-import FitScoreCard from '@/components/matching/FitScoreCard';
-import ShortlistComparison from '@/components/matching/ShortlistComparison';
 import ProviderDossier from '@/components/providers/ProviderDossier';
-import TierBadge from '@/components/providers/TierBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -577,108 +574,14 @@ export default function BriefDetail() {
               )}
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Business Context</CardTitle>
-                  <CardDescription>What Sablecrest understands about your current situation.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Company</p>
-                    <p className="text-sm">{brief.businessContext.companyName || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Size</p>
-                    <p className="text-sm">{brief.businessContext.companySize || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Segment</p>
-                    <p className="text-sm">{brief.businessContext.industry || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Decision Timeline</p>
-                    <p className="text-sm">{brief.businessContext.decisionTimeline || 'Not provided'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Current State</p>
-                    <p className="text-sm whitespace-pre-wrap">{brief.businessContext.currentState || 'Not provided'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Desired Outcome</p>
-                    <p className="text-sm whitespace-pre-wrap">{brief.businessContext.desiredOutcome || 'Not provided'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Key Stakeholders</p>
-                    <p className="text-sm whitespace-pre-wrap">{brief.businessContext.keyStakeholders || 'Not provided'}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Type</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm font-medium">{projectType?.name ?? brief.projectTypeId}</p>
-                  {projectType && (
-                    <>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{projectType.category}</p>
-                      <p className="text-sm text-muted-foreground">{projectType.description}</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {isAdmin ? (
-                <>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Risk Assessment</CardTitle>
-                      <CardDescription>Advisor-only risk factors used for matching and planning.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {brief.riskFactors.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No risk factors captured yet.</p>
-                      ) : (
-                        brief.riskFactors.map((risk) => (
-                          <div key={risk.id} className="rounded-md border border-border p-3 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline">{risk.category}</Badge>
-                              <Badge variant="secondary">Likelihood: {risk.likelihood}</Badge>
-                              <Badge variant="secondary">Impact: {risk.impact}</Badge>
-                            </div>
-                            <p className="text-sm">{risk.description}</p>
-                            {risk.mitigation ? (
-                              <p className="text-xs text-muted-foreground">
-                                <span className="font-medium">Mitigation:</span> {risk.mitigation}
-                              </p>
-                            ) : null}
-                          </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Advisor Notes</CardTitle>
-                      <CardDescription>Internal assessment and discovery context.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Discovery Notes</p>
-                        <p className="text-sm whitespace-pre-wrap">{brief.discoveryNotes || 'No discovery notes recorded.'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Advisor Assessment</p>
-                        <p className="text-sm whitespace-pre-wrap">{brief.advisorNotes || 'No advisor assessment recorded.'}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : null}
-            </TabsContent>
+            <BriefOverviewTab
+              brief={brief}
+              projectType={projectType}
+              advisorName={advisorName}
+              isAdmin={isAdmin}
+              isClient={isClient}
+              formatRelativeTime={formatRelativeTime}
+            />
 
             <TabsContent value="requirements" className="space-y-4 mt-0">
               <Card>
@@ -770,333 +673,43 @@ export default function BriefDetail() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="constraints" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Budget</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Minimum</p>
-                    <p className="text-sm">
-                      {typeof brief.constraints.budget.min === 'number'
-                        ? `$${brief.constraints.budget.min.toLocaleString()}`
-                        : 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Maximum</p>
-                    <p className="text-sm">
-                      {typeof brief.constraints.budget.max === 'number'
-                        ? `$${brief.constraints.budget.max.toLocaleString()}`
-                        : 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Flexibility</p>
-                    <p className="text-sm">{brief.constraints.budget.flexibility}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Timeline</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Urgency</p>
-                    <p className="text-sm">{brief.constraints.timeline.urgency || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Hard Deadline</p>
-                    <p className="text-sm">{brief.constraints.timeline.hardDeadline || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Reason</p>
-                    <p className="text-sm whitespace-pre-wrap">{brief.constraints.timeline.reason || 'Not provided'}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sensitivity</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Level</p>
-                    <p className="text-sm">{brief.constraints.sensitivity.level || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Concerns</p>
-                    <p className="text-sm">
-                      {brief.constraints.sensitivity.concerns?.length
-                        ? brief.constraints.sensitivity.concerns.join(', ')
-                        : 'None listed'}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Technical Constraints</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Must Integrate</p>
-                    <p className="text-sm">
-                      {brief.constraints.technical.mustIntegrate?.length
-                        ? brief.constraints.technical.mustIntegrate.join(', ')
-                        : 'None listed'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Cannot Change</p>
-                    <p className="text-sm">
-                      {brief.constraints.technical.cannotChange?.length
-                        ? brief.constraints.technical.cannotChange.join(', ')
-                        : 'None listed'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Preferences</p>
-                    <p className="text-sm">
-                      {brief.constraints.technical.preferences?.length
-                        ? brief.constraints.technical.preferences.join(', ')
-                        : 'None listed'}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+            <BriefConstraintsTab brief={brief} />
 
             {isAdmin ? (
-              <TabsContent value="audit" className="space-y-4 mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Field Audit</CardTitle>
-                    <CardDescription>
-                      Track field source, client confirmations, and client notes across this brief.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">
-                        {clientConfirmedCount} confirmed by client
-                      </Badge>
-                      <Badge variant="secondary">
-                        {clientChangedCount} changed by client
-                      </Badge>
-                      <Badge variant="secondary">
-                        {pendingClientInputCount} pending {pluralize(pendingClientInputCount, 'field')}
-                      </Badge>
-
-                      <div className="ml-auto flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={auditMode === 'all' ? 'default' : 'outline'}
-                          onClick={() => setAuditMode('all')}
-                        >
-                          All Fields
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={auditMode === 'changes' ? 'default' : 'outline'}
-                          onClick={() => setAuditMode('changes')}
-                        >
-                          Client Changes
-                        </Button>
-                      </div>
-                    </div>
-
-                    {filteredAuditRows.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        {auditMode === 'changes'
-                          ? 'No client-originated field changes detected yet.'
-                          : 'No field audit data available yet.'}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredAuditRows.map((row) => (
-                          <div key={row.path} className="rounded-md border border-border p-3 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-medium">{row.label}</p>
-                              <Badge variant="secondary" className={sourceBadgeClass(row.source)}>
-                                {sourceBadgeLabel(row.source)}
-                              </Badge>
-                              {row.confirmedByClient ? (
-                                <Badge variant="outline" className="gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  Confirmed
-                                </Badge>
-                              ) : null}
-                              {row.markedForClientInput ? (
-                                <Badge variant="outline" className="text-amber-700 border-amber-300 dark:text-amber-300 dark:border-amber-700">
-                                  Needs client input
-                                </Badge>
-                              ) : null}
-                            </div>
-
-                            <p className="text-sm whitespace-pre-wrap">{formatValueForDisplay(row.value)}</p>
-
-                            {row.clientNote ? (
-                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                                <span className="font-medium">Client note:</span> {row.clientNote}
-                              </p>
-                            ) : null}
-
-                            <p className="text-[11px] text-muted-foreground">{row.path}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+              <BriefAuditTab
+                auditMode={auditMode}
+                setAuditMode={setAuditMode}
+                filteredAuditRows={filteredAuditRows}
+                clientChangedCount={clientChangedCount}
+                clientConfirmedCount={clientConfirmedCount}
+                pendingClientInputCount={pendingClientInputCount}
+              />
             ) : null}
 
             {isAdmin ? (
-              <TabsContent value="matches" className="space-y-4 mt-0">
-                {/* Admin-only matching workflow. Route-level RoleRoute should also guard this path in production. */}
-                {isBeforeLockedStatus ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Provider Matches</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Lock the brief to generate provider matches. Matching requires all criteria to be finalized.
-                      </p>
-                      <Button size="sm" onClick={handleLockBrief} disabled={actionInProgress !== null}>
-                        {actionInProgress === 'lock' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-                        Lock Brief
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    {isGeneratingMatches ? (
-                      <Card>
-                        <CardContent className="py-8 flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Analyzing providers...
-                        </CardContent>
-                      </Card>
-                    ) : null}
-
-                    {!isGeneratingMatches && !matchingResult ? (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Run Matching</CardTitle>
-                          <CardDescription>
-                            Analyzes {aecProviders.length} providers against your brief requirements.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button size="lg" onClick={handleGenerateMatches} disabled={actionInProgress !== null}>
-                            Generate Matches
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ) : null}
-
-                    {!isGeneratingMatches && matchingResult ? (
-                      <>
-                        <MatchResults
-                          matches={matchingResult.matches}
-                          providers={aecProviders}
-                          onAddToShortlist={handleAddToShortlist}
-                          onViewDossier={handleViewDossier}
-                          shortlistedIds={shortlistProviderIds}
-                          algorithmVersion={matchingResult.algorithmVersion}
-                          generatedAt={matchingResult.generatedAt}
-                          totalCandidatesEvaluated={matchingResult.totalCandidatesEvaluated}
-                          onRegenerate={handleRegenerateMatches}
-                        />
-
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Shortlist ({shortlist.length} providers)</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {shortlist.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">
-                                Add providers from the matches above to build your shortlist.
-                              </p>
-                            ) : (
-                              <div className="grid gap-3 md:grid-cols-2">
-                                {shortlistMatches.map(({ entry, provider }) => (
-                                  <div key={entry.id} className="rounded-md border border-border p-3 space-y-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="space-y-1">
-                                        <p className="text-sm font-medium">{provider.name}</p>
-                                        <TierBadge tier={provider.tier} size="sm" />
-                                      </div>
-                                      <FitScoreCard score={entry.matchScore.overallScore} size="compact" />
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleViewDossier(provider.id)}
-                                      >
-                                        View Dossier
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleRemoveFromShortlist(provider.id)}
-                                      >
-                                        Remove
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleCompareShortlist}
-                                disabled={shortlist.length < 2}
-                              >
-                                Compare Shortlist
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                onClick={handlePresentToClient}
-                                disabled={shortlist.length === 0 || actionInProgress !== null}
-                              >
-                                {actionInProgress === 'presentShortlist' ? (
-                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                ) : null}
-                                Present to Client
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {isComparing ? (
-                          <ShortlistComparison
-                            shortlist={shortlist}
-                            providers={aecProviders}
-                            onSelectProvider={handleOpenSelectProvider}
-                            onRemoveFromShortlist={handleRemoveFromShortlist}
-                            onViewDossier={handleViewDossier}
-                            onClose={() => setIsComparing(false)}
-                          />
-                        ) : null}
-                      </>
-                    ) : null}
-                  </>
-                )}
-              </TabsContent>
+              <BriefMatchesTab
+                brief={brief}
+                isAdmin={isAdmin}
+                matchingResult={matchingResult}
+                isGeneratingMatches={isGeneratingMatches}
+                shortlist={shortlist}
+                shortlistMatches={shortlistMatches}
+                shortlistProviderIds={shortlistProviderIds}
+                actionInProgress={actionInProgress}
+                isComparing={isComparing}
+                isBeforeLockedStatus={isBeforeLockedStatus}
+                isBeforeShortlistedStatus={isBeforeShortlistedStatus}
+                handleLockBrief={handleLockBrief}
+                handleGenerateMatches={handleGenerateMatches}
+                handleRegenerateMatches={handleRegenerateMatches}
+                handleAddToShortlist={handleAddToShortlist}
+                handleRemoveFromShortlist={handleRemoveFromShortlist}
+                handleViewDossier={handleViewDossier}
+                handleCompareShortlist={handleCompareShortlist}
+                handlePresentToClient={handlePresentToClient}
+                handleOpenSelectProvider={handleOpenSelectProvider}
+                setIsComparing={setIsComparing}
+              />
             ) : null}
 
             {isAdmin ? (
