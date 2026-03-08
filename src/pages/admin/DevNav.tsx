@@ -49,15 +49,6 @@ const DEV_SECTIONS: DevSection[] = [
       { label: 'Provider Evidence', path: '/provider-portal/evidence' },
     ],
   },
-  {
-    title: 'LEGACY PAGES (to be removed)',
-    routes: [
-      { label: 'New Request', path: '/requests/new' },
-      { label: 'Requests List', path: '/requests' },
-      { label: 'Scorecards', path: '/scorecards' },
-      { label: 'Shortlist Compare', path: '/shortlists' },
-    ],
-  },
 ];
 
 export default function DevNav() {

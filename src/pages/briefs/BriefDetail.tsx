@@ -1,93 +1,59 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { aecProviders } from '@/data/aecProviders';
+import { aecProjectTypes } from '@/data/aecProjectTypes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBriefActions } from '@/hooks/useBriefActions';
 import { useMatching } from '@/hooks/useMatching';
 import { useBriefLoader } from '@/hooks/useBriefLoader';
 import { useShortlist } from '@/hooks/useShortlist';
 import {
-  type ActionKey,
   type AuditRow,
   type BriefTabKey,
   CLIENT_SHORTLIST_STATUSES,
   formatRelativeTime,
-  formatValueForDisplay,
   getValueAtPath,
   isMeaningfulValue,
   makeFieldLabel,
 } from '@/lib/briefUtils';
 import { cn } from '@/lib/utils';
+import BriefActionDialogs from '@/components/briefs/detail/BriefActionDialogs';
+import BriefAdminSidebar from '@/components/briefs/detail/BriefAdminSidebar';
 import BriefAuditTab from '@/components/briefs/detail/BriefAuditTab';
 import BriefConstraintsTab from '@/components/briefs/detail/BriefConstraintsTab';
+import BriefDetailFallback from '@/components/briefs/detail/BriefDetailFallback';
+import BriefHeaderActions from '@/components/briefs/detail/BriefHeaderActions';
+import BriefHistoryTab from '@/components/briefs/detail/BriefHistoryTab';
 import BriefMatchesTab from '@/components/briefs/detail/BriefMatchesTab';
 import BriefOverviewTab from '@/components/briefs/detail/BriefOverviewTab';
-import ClientShortlistView from '@/components/matching/ClientShortlistView';
+import BriefRequirementsTab from '@/components/briefs/detail/BriefRequirementsTab';
+import BriefShortlistTab from '@/components/briefs/detail/BriefShortlistTab';
+import BriefStatusMeta from '@/components/briefs/detail/BriefStatusMeta';
+import BriefSuccessTab from '@/components/briefs/detail/BriefSuccessTab';
 import ProviderDossier from '@/components/providers/ProviderDossier';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { RiskFactor } from '@/types/brief';
 import type { ShortlistEntry } from '@/types/matching';
 import type { ProviderProfile } from '@/types/provider';
+
 export default function BriefDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-
   const { loading: authLoading, hasRole, isOpsOrAdmin, isUiShellMode } = useAuth();
-
   const isAdmin = isOpsOrAdmin || hasRole(['admin', 'ops']);
   const isClient = hasRole(['client']) && !isAdmin;
-
   const {
-    brief,
-    loading,
-    loadError,
-    notFound,
-    advisorName,
-    matchingResult,
-    setMatchingResult,
-    shortlist,
-    setShortlist,
-    clientShortlistPreferences,
-    setClientShortlistPreferences,
-    applyLocalBriefUpdates,
+    brief, loading, loadError, notFound, advisorName, matchingResult, setMatchingResult, shortlist, setShortlist,
+    clientShortlistPreferences, setClientShortlistPreferences, applyLocalBriefUpdates,
   } = useBriefLoader(id);
-
   const {
-    actionInProgress,
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    persistBriefUpdate,
-    handleDelete,
-    handleSendToClient,
-    handleRecallToDraft,
-    handleSendBackToClient,
-    handleLockBrief,
-    handleUnlockBrief,
-    handleMarkInExecution,
+    actionInProgress, deleteDialogOpen, setDeleteDialogOpen, persistBriefUpdate, handleDelete, handleSendToClient,
+    handleRecallToDraft, handleSendBackToClient, handleLockBrief, handleUnlockBrief, handleMarkInExecution,
     handleMarkCompleted,
   } = useBriefActions({ brief, isAdmin, isUiShellMode, applyLocalBriefUpdates });
-
   const [activeTab, setActiveTab] = useState<BriefTabKey>('overview');
   const [auditMode, setAuditMode] = useState<'all' | 'changes'>('all');
-
   const { isGeneratingMatches, handleGenerateMatches, handleRegenerateMatches } = useMatching({
     brief,
     isAdmin,
@@ -96,23 +62,11 @@ export default function BriefDetail() {
     setMatchingResult,
     applyLocalBriefUpdates,
   });
-
   const {
-    selectedProviderForDossier,
-    isDossierOpen,
-    isComparing,
-    selectedProviderForSelection,
-    setSelectedProviderForSelection,
-    setIsComparing,
-    handleAddToShortlist,
-    handleRemoveFromShortlist,
-    handleClientPreferenceSelect,
-    handlePresentToClient,
-    handleViewDossier,
-    handleCloseDossier,
-    handleCompareShortlist,
-    handleOpenSelectProvider,
-    handleConfirmSelectProvider,
+    selectedProviderForDossier, isDossierOpen, isComparing, selectedProviderForSelection,
+    setSelectedProviderForSelection, setIsComparing, handleAddToShortlist, handleRemoveFromShortlist,
+    handleClientPreferenceSelect, handlePresentToClient, handleViewDossier, handleCloseDossier,
+    handleCompareShortlist, handleOpenSelectProvider, handleConfirmSelectProvider,
   } = useShortlist({
     brief,
     isAdmin,
@@ -170,20 +124,13 @@ export default function BriefDetail() {
     return matchingResult?.matches.find((match) => match.providerId === selectedProviderForDossier.id);
   }, [matchingResult, selectedProviderForDossier, shortlist]);
 
-  const showClientShortlistTab = useMemo(() => {
-    return !isAdmin;
-  }, [isAdmin]);
+  const showClientShortlistTab = !isAdmin;
 
   const auditRows = useMemo<AuditRow[]>(() => {
     if (!brief || !isAdmin) return [];
-
     const fieldSources = brief.fieldSources ?? {};
     const clientNotes = brief.clientNotes ?? {};
-
-    const allPaths = new Set<string>([
-      ...Object.keys(fieldSources),
-      ...Object.keys(clientNotes),
-    ]);
+    const allPaths = new Set<string>([...Object.keys(fieldSources), ...Object.keys(clientNotes)]);
 
     if (allPaths.size === 0) {
       Object.entries(brief.businessContext).forEach(([key, value]) => {
@@ -284,23 +231,14 @@ export default function BriefDetail() {
 
   useEffect(() => {
     if (authLoading) return;
-
     if (!isAdmin && !isClient && !isUiShellMode) {
       navigate('/dashboard', { replace: true });
     }
   }, [authLoading, isAdmin, isClient, isUiShellMode, navigate]);
+  const runAdminProgressView = () => { setAuditMode('all'); setActiveTab('audit'); };
+  const runAdminReviewChanges = () => { setAuditMode('changes'); setActiveTab('audit'); };
 
-  const runAdminProgressView = useCallback(() => {
-    setAuditMode('all');
-    setActiveTab('audit');
-  }, []);
-
-  const runAdminReviewChanges = useCallback(() => {
-    setAuditMode('changes');
-    setActiveTab('audit');
-  }, []);
-
-  const getProjectSubtitle = useMemo(() => {
+  const projectSubtitle = useMemo(() => {
     if (!projectType) {
       if (!brief?.projectTypeId || brief?.projectTypeId === 'other') return 'Custom project type';
       return brief.projectTypeId;
@@ -330,201 +268,35 @@ export default function BriefDetail() {
     }
   }, [brief, isAdmin]);
 
-  const renderActionButton = (
-    key: ActionKey,
-    label: string,
-    onClick: () => void,
-    variant: 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive' = 'default',
-    disabled?: boolean
-  ) => (
-    <Button key={key} variant={variant} size="sm" onClick={onClick} disabled={disabled || actionInProgress !== null}>
-      {actionInProgress === key && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-      {label}
-    </Button>
-  );
-
-  const adminActions = useMemo(() => {
-    if (!brief || !isAdmin) return null;
-
-    switch (brief.status) {
-      case 'Advisor Draft':
-        return (
-          <>
-            {renderActionButton('sendToClient', 'Send to Client', handleSendToClient, 'default')}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/admin/briefs/create?briefId=${brief.id}`)}
-              disabled={actionInProgress !== null}
-            >
-              Continue Editing
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={actionInProgress !== null}
-            >
-              Delete
-            </Button>
-          </>
-        );
-
-      case 'Client Review':
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={runAdminProgressView} disabled={actionInProgress !== null}>
-              View Client Progress
-            </Button>
-            {renderActionButton('recall', 'Recall', handleRecallToDraft, 'secondary')}
-          </>
-        );
-
-      case 'In Review':
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={runAdminReviewChanges} disabled={actionInProgress !== null}>
-              Review Changes
-            </Button>
-            {renderActionButton('lock', 'Lock Brief', handleLockBrief, 'default')}
-            {renderActionButton('sendBack', 'Send Back to Client', handleSendBackToClient, 'secondary')}
-          </>
-        );
-
-      case 'Locked':
-        return (
-          <>
-            {renderActionButton('generateMatches', 'Generate Matches', handleGenerateMatches, 'default')}
-            {renderActionButton('unlock', 'Unlock', handleUnlockBrief, 'secondary')}
-          </>
-        );
-
-      case 'Shortlisted':
-        return (
-          <Button size="sm" variant="outline" onClick={() => setActiveTab('matches')} disabled={actionInProgress !== null}>
-            View Matches
-          </Button>
-        );
-
-      case 'Selected':
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={() => setActiveTab('matches')} disabled={actionInProgress !== null}>
-              View Selection
-            </Button>
-            {renderActionButton('markInExecution', 'Move to In Execution', handleMarkInExecution, 'default')}
-          </>
-        );
-
-      case 'In Execution':
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={() => setActiveTab('history')} disabled={actionInProgress !== null}>
-              View Progress
-            </Button>
-            {renderActionButton('markCompleted', 'Mark Completed', handleMarkCompleted, 'default')}
-          </>
-        );
-
-      case 'Completed':
-        return (
-          <Button size="sm" variant="outline" onClick={() => setActiveTab('history')} disabled={actionInProgress !== null}>
-            View History
-          </Button>
-        );
-
-      default:
-        return null;
-    }
-  }, [
-    actionInProgress,
-    brief,
-    handleGenerateMatches,
-    handleLockBrief,
-    handleMarkCompleted,
-    handleMarkInExecution,
-    handleRecallToDraft,
-    handleSendBackToClient,
-    handleSendToClient,
-    handleUnlockBrief,
-    isAdmin,
-    navigate,
-    runAdminProgressView,
-    runAdminReviewChanges,
-  ]);
-
-  const clientActions = useMemo(() => {
-    if (!brief || isAdmin) return null;
-
-    switch (brief.status) {
-      case 'Client Review':
-        return (
-          <Button size="sm" onClick={() => navigate(`/briefs/${brief.id}/review`)}>
-            Continue Review
-          </Button>
-        );
-      case 'Shortlisted':
-        return (
-          <Button size="sm" variant="outline" onClick={() => setActiveTab('shortlist')}>
-            View Your Shortlist
-          </Button>
-        );
-      case 'Selected':
-        return (
-          <Button size="sm" variant="outline" onClick={() => setActiveTab('shortlist')}>
-            View Selection
-          </Button>
-        );
-      case 'In Execution':
-        return (
-          <Button size="sm" variant="outline" onClick={() => setActiveTab('overview')}>
-            View Progress
-          </Button>
-        );
-      default:
-        return null;
-    }
-  }, [brief, isAdmin, navigate]);
-
   if (loading || authLoading) {
     return (
-      <div className="page-container">
-        <PageHeader title="Implementation Brief" description="Loading brief details..." showBack />
-        <div className="page-content">
-          <Card>
-            <CardContent className="py-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading brief details...
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <BriefDetailFallback
+        variant="loading"
+        title="Implementation Brief"
+        description="Loading brief details..."
+      />
     );
   }
 
   if (notFound || !brief) {
     return (
-      <div className="page-content">
-        <EmptyState
-          icon={AlertCircle}
-          title="Brief not found"
-          description={loadError ?? 'This brief may have been removed or you do not have access.'}
-          action={{ label: 'Back to Briefs', onClick: () => navigate('/briefs') }}
-        />
-      </div>
+      <BriefDetailFallback
+        variant="empty"
+        title="Brief not found"
+        description={loadError ?? 'This brief may have been removed or you do not have access.'}
+        onBack={() => navigate('/briefs')}
+      />
     );
   }
 
   if (loadError && !notFound) {
     return (
-      <div className="page-content">
-        <EmptyState
-          icon={AlertCircle}
-          title="Unable to load brief"
-          description={loadError}
-          action={{ label: 'Back to Briefs', onClick: () => navigate('/briefs') }}
-        />
-      </div>
+      <BriefDetailFallback
+        variant="empty"
+        title="Unable to load brief"
+        description={loadError}
+        onBack={() => navigate('/briefs')}
+      />
     );
   }
 
@@ -534,25 +306,35 @@ export default function BriefDetail() {
     <div className="page-container">
       <PageHeader
         title={title}
-        description={isAdmin ? `${getProjectSubtitle} • Advisor: ${advisorName}` : getProjectSubtitle}
+        description={isAdmin ? `${projectSubtitle} • Advisor: ${advisorName}` : projectSubtitle}
         showBack
         actions={
-          <div className="flex items-center gap-2">
-            {isAdmin ? adminActions : clientActions}
-          </div>
+          <BriefHeaderActions
+            brief={brief}
+            isAdmin={isAdmin}
+            actionInProgress={actionInProgress}
+            onContinueEditing={() => navigate(`/admin/briefs/create?briefId=${brief.id}`)}
+            onOpenDeleteDialog={() => setDeleteDialogOpen(true)}
+            onShowClientProgress={runAdminProgressView}
+            onReviewChanges={runAdminReviewChanges}
+            onShowMatches={() => setActiveTab('matches')}
+            onShowHistory={() => setActiveTab('history')}
+            onShowShortlist={() => setActiveTab('shortlist')}
+            onShowOverview={() => setActiveTab('overview')}
+            onContinueReview={() => navigate(`/briefs/${brief.id}/review`)}
+            onSendToClient={handleSendToClient}
+            onRecallToDraft={handleRecallToDraft}
+            onSendBackToClient={handleSendBackToClient}
+            onLockBrief={handleLockBrief}
+            onUnlockBrief={handleUnlockBrief}
+            onGenerateMatches={handleGenerateMatches}
+            onMarkInExecution={handleMarkInExecution}
+            onMarkCompleted={handleMarkCompleted}
+          />
         }
       />
 
-      <div className="flex items-center gap-2 px-6 py-2 border-b border-border bg-card/40">
-        <StatusBadge status={brief.status} variant="brief" />
-        <span className="text-xs text-muted-foreground">Updated {formatRelativeTime(brief.updatedAt)}</span>
-      </div>
-
-      {!isAdmin && clientStatusMessage ? (
-        <div className="px-6 py-3 border-b border-border bg-muted/30">
-          <p className="text-sm text-muted-foreground">{clientStatusMessage}</p>
-        </div>
-      ) : null}
+      <BriefStatusMeta status={brief.status} updatedAt={brief.updatedAt} clientStatusMessage={isAdmin ? null : clientStatusMessage} />
 
       <div className={cn('page-content', isAdmin ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6' : 'space-y-4')}>
         <div>
@@ -569,7 +351,7 @@ export default function BriefDetail() {
                   <TabsTrigger value="matches">Matches</TabsTrigger>
                   <TabsTrigger value="history">History</TabsTrigger>
                 </>
-              ) : (
+            ) : (
                 showClientShortlistTab && <TabsTrigger value="shortlist">Shortlist</TabsTrigger>
               )}
             </TabsList>
@@ -583,95 +365,9 @@ export default function BriefDetail() {
               formatRelativeTime={formatRelativeTime}
             />
 
-            <TabsContent value="requirements" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Intake Responses</CardTitle>
-                  <CardDescription>Detailed inputs collected for this implementation brief.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {intakeEntries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No intake responses have been captured yet.</p>
-                  ) : (
-                    intakeEntries.map((entry) => (
-                      <div key={entry.id} className="rounded-md border border-border p-3">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{entry.label}</p>
-                        <p className="text-sm whitespace-pre-wrap">{formatValueForDisplay(entry.value)}</p>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+            <BriefRequirementsTab intakeEntries={intakeEntries} />
 
-            <TabsContent value="success" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Success Criteria</CardTitle>
-                  <CardDescription>
-                    {isAdmin
-                      ? 'Criteria used to evaluate implementation outcomes and provider fit.'
-                      : 'How success will be measured for your implementation.'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {brief.successCriteria.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No success criteria are defined yet.</p>
-                  ) : (
-                    brief.successCriteria.map((criterion, index) => (
-                      <div key={criterion.id || `criterion-${index}`} className="rounded-md border border-border p-3 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-medium">{criterion.metric || `Criterion ${index + 1}`}</p>
-                          {isAdmin && criterion.source ? (
-                            <Badge
-                              variant="secondary"
-                              className={
-                                criterion.source === 'advisor'
-                                  ? 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
-                                  : criterion.source === 'client'
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
-                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                              }
-                            >
-                              {criterion.source === 'advisor'
-                                ? 'Suggested by Sablecrest'
-                                : criterion.source === 'client'
-                                ? 'Client Added'
-                                : 'AI Suggested'}
-                            </Badge>
-                          ) : null}
-                          {isAdmin && criterion.confirmedByClient ? (
-                            <Badge variant="outline">Confirmed by client</Badge>
-                          ) : null}
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Baseline</p>
-                            <p className="text-sm">{criterion.baseline || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Target</p>
-                            <p className="text-sm">{criterion.target || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Measurement Method</p>
-                            <p className="text-sm">{criterion.measurementMethod || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Timeframe</p>
-                            <p className="text-sm">{criterion.timeframe || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Weight</p>
-                            <p className="text-sm">{criterion.weight ?? 'Not provided'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+            <BriefSuccessTab brief={brief} isAdmin={isAdmin} />
 
             <BriefConstraintsTab brief={brief} />
 
@@ -713,119 +409,24 @@ export default function BriefDetail() {
             ) : null}
 
             {isAdmin ? (
-              <TabsContent value="history" className="space-y-4 mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>History</CardTitle>
-                    <CardDescription>Versioning and activity timeline placeholder.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p>
-                      <span className="text-muted-foreground">Created:</span> {formatRelativeTime(brief.createdAt)}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Last updated:</span> {formatRelativeTime(brief.updatedAt)}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Client review started:</span>{' '}
-                      {formatRelativeTime(brief.clientReviewStartedAt)}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Client review completed:</span>{' '}
-                      {formatRelativeTime(brief.clientReviewCompletedAt)}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Locked:</span> {formatRelativeTime(brief.lockedAt)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+              <BriefHistoryTab brief={brief} formatRelativeTime={formatRelativeTime} />
             ) : null}
 
             {!isAdmin && showClientShortlistTab ? (
-              <TabsContent value="shortlist" className="space-y-4 mt-0">
-                {isBeforeShortlistedStatus ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Curated Shortlist</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Your Sablecrest advisor is identifying the best providers for your needs. You will be notified
-                        when your shortlist is ready.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : shortlistMatches.length === 0 ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Curated Shortlist</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Your shortlist is being prepared. Please check back shortly.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <ClientShortlistView
-                    shortlist={shortlist}
-                    providers={aecProviders}
-                    onViewDossier={handleViewDossier}
-                    onSelectPreference={handleClientPreferenceSelect}
-                    selectedPreferences={clientShortlistPreferences}
-                    projectTypeName={projectType?.name}
-                  />
-                )}
-              </TabsContent>
+              <BriefShortlistTab
+                isBeforeShortlistedStatus={isBeforeShortlistedStatus}
+                shortlist={shortlist}
+                shortlistMatchCount={shortlistMatches.length}
+                onViewDossier={handleViewDossier}
+                onSelectPreference={handleClientPreferenceSelect}
+                selectedPreferences={clientShortlistPreferences}
+                projectTypeName={projectType?.name}
+              />
             ) : null}
           </Tabs>
         </div>
 
-        {isAdmin ? (
-          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            <Card>
-              <CardHeader>
-                <CardTitle>Advisor Notes Panel</CardTitle>
-                <CardDescription>Internal context visible to admin and ops only.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Discovery Notes</p>
-                  <p className="text-sm whitespace-pre-wrap">{brief.discoveryNotes || 'No discovery notes recorded.'}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Advisor Assessment</p>
-                  <p className="text-sm whitespace-pre-wrap">{brief.advisorNotes || 'No advisor assessment recorded.'}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Risk Flags</p>
-                  {highRiskFlags.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No high-risk flags identified.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {highRiskFlags.map((risk) => (
-                        <li key={risk.id} className="text-sm rounded-md border border-border px-2.5 py-2">
-                          <p className="font-medium">{risk.category}</p>
-                          <p className="text-muted-foreground">{risk.description}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Internal Notes</p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {brief.advisorNotes || 'No additional internal notes have been captured yet.'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </aside>
-        ) : null}
+        {isAdmin ? <BriefAdminSidebar brief={brief} highRiskFlags={highRiskFlags} /> : null}
       </div>
 
       <ProviderDossier
@@ -840,59 +441,20 @@ export default function BriefDetail() {
         }
       />
 
-      <AlertDialog
-        open={Boolean(selectedProviderForSelection)}
-        onOpenChange={(open) => {
+      <BriefActionDialogs
+        selectedProviderName={selectedProviderForSelection?.name}
+        selectionOpen={Boolean(selectedProviderForSelection)}
+        onSelectionOpenChange={(open) => {
           if (!open) {
             setSelectedProviderForSelection(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Select {selectedProviderForSelection?.name ?? 'this provider'} for this brief?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This will update the brief status to Selected.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionInProgress === 'selectProvider'}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmSelectProvider}
-              disabled={actionInProgress === 'selectProvider'}
-            >
-              {actionInProgress === 'selectProvider' ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : null}
-              Confirm Selection
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete advisor draft?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action permanently deletes the brief and cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionInProgress === 'delete'}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={actionInProgress === 'delete'}
-            >
-              {actionInProgress === 'delete' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirmSelection={handleConfirmSelectProvider}
+        deleteDialogOpen={deleteDialogOpen}
+        onDeleteDialogOpenChange={setDeleteDialogOpen}
+        onDelete={handleDelete}
+        actionInProgress={actionInProgress}
+      />
     </div>
   );
 }

@@ -145,8 +145,8 @@ export function DossierContentSkeleton() {
   );
 }
 
-// Request detail skeleton
-export function RequestDetailSkeleton() {
+// Brief detail skeleton
+export function BriefDetailSkeleton() {
   return (
     <div className="page-container animate-fade-in">
       {/* Header */}
